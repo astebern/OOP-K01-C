@@ -1,41 +1,42 @@
 package core;
 
 public class Order {
-    private int orderNumber;
+    private int posisiOrder;
     private Recipe recipe;
     private int reward;
     private int penalty;
+    private int timeLimit;
 
-    public Order(int orderNumber, Recipe recipe, int reward, int penalty) {
-        this.orderNumber = orderNumber;
+    public Order(int posisiOrder, Recipe recipe, int reward, int penalty, int timeLimit) {
+        this.posisiOrder = posisiOrder;
         this.recipe = recipe;
         this.reward = reward;
         this.penalty = penalty;
+        this.timeLimit = timeLimit;
     }
-
     
-    public int getOrderNumber() {
-        return orderNumber;
+    public int getPosisiOrder() {
+        return posisiOrder;
     }
 
-    public void setOrderNumber(int orderNumber) {
-        this.orderNumber = orderNumber;
+    public void setPosisiOrder(int newPos) {
+        this.posisiOrder = newPos;
     }
 
     public Recipe getRecipe() {
         return recipe;
     }
 
-    public void setRecipe(Recipe recipe) {
-        this.recipe = recipe;
+    public void setRecipe(Recipe newRecipe) {
+        this.recipe = newRecipe;
     }
 
     public int getReward() {
         return reward;
     }
 
-    public void setReward(int reward) {
-        this.reward = reward;
+    public void setReward(int newReward) {
+        this.reward = newReward;
     }
 
     public int getPenalty() {
@@ -46,17 +47,15 @@ public class Order {
         this.penalty = penalty;
     }
 
-    public boolean isOrderCompleted(Dish dish) {
+    public boolean compareDishAndRecipe(Dish dish, Recipe recipe) {
         return recipe.validateDish(dish);
     }
 
-    @Override
-    public String toString() {
-        return "Order #" + orderNumber +
-               " | Recipe: " + (recipe != null ? recipe.getName() : "None") +
-               " | Reward: " + reward +
-               " | Penalty: " + penalty;
+    public boolean isExpired(){
+        //kalau waktunya > waktu yg ditentukan 
+        return false;
     }
+
 }
 
 

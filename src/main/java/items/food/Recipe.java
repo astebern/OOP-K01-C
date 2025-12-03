@@ -14,17 +14,34 @@ public class Recipe {
         return name;
     }
 
+    public void setName(String name) {
+        this.name = name;
+    }
+
     public List<Requirement> getRequiredComponents() {
         return requiredComponents;
     }
 
-    public boolean validateDish(Dish dish) { //cek kebutuhan 1-1 loop requirement  yang ada di recipe
-        for (Requirement req : requiredComponents) {
-            if (!dish.hasComponent(req)) { //apakah dish memiliki ingridient yang sesuai requirement
+    public void setRequiredComponents(List<Requirement> requiredComponents) {
+        this.requiredComponents = requiredComponents;
+    }
+
+    public boolean validateDish(Dish dish) { 
+        for (Requirement requirement : requiredComponents) {
+            boolean found = false;
+            for (Ingredient ingredient : dish.getIngredients()){
+                if (ingredient.getName().equals(requirement.getIngredientName()) &&
+                    ingredient.getState() == requirement.getRequiredState()) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
                 return false;
             }
         }
-        return true;
-    }  
+        return true; 
+    } 
+   
 }
 
