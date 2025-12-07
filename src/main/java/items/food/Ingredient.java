@@ -4,56 +4,92 @@ import items.Item;
 import items.Preparable;
 
 public class Ingredient extends Item implements Preparable {
+    private String name;
     private IngredientState state;
+    
+    private boolean choppable;
+    private boolean cookable;
+    private boolean canPlaceOnPlate;
 
     public Ingredient(String name) {
-        super(name);
+        this.name = name; 
         this.state = IngredientState.RAW;
+        
+        // Default logic awal
+        this.choppable = true;
+        this.cookable = true;
+        this.canPlaceOnPlate = false; 
+    }
+
+    public void setName(String newName) {
+        this.name = newName;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setState(IngredientState newState) {
+        this.state = newState;
     }
 
     public IngredientState getState() {
         return state;
     }
 
-    public void setState(IngredientState state) {
-        this.state = state;
+    public void setChoppable(boolean bol) {
+        this.choppable = bol;
     }
+
+    public void setCookable(boolean bol) {
+        this.cookable = bol;
+    }
+
+    public void setcanPlaceOnPlate(boolean bol) {
+        this.canPlaceOnPlate = bol;
+    }
+
 
     @Override
     public boolean canBeChopped() {
-        return this.state == IngredientState.RAW;
+        return this.choppable;
     }
 
     @Override
     public boolean canBeCooked() {
-        return this.state == IngredientState.RAW || this.state == IngredientState.CHOPPED;
+        return this.cookable;
     }
 
     @Override
     public boolean canBePlacedOnPlate() {
-        return this.state != IngredientState.BURNED;
+        return this.canPlaceOnPlate;
     }
 
     @Override
-    public void chop() {
-        if (canBeChopped()) {
+    public boolean chop() {
+        if (this.choppable) {
             this.state = IngredientState.CHOPPED;
-            System.out.println(name + " dipotong menjadi CHOPPED.");
+            this.choppable = false; 
+            this.cookable = true; 
+            return true;
         }
+        return false;
     }
 
     @Override
-    public void cook() {
-        this.state = IngredientState.COOKED;
-    }
-    
-    // Method helper untuk logic hangus
-    public void burn() {
-        this.state = IngredientState.BURNED;
+    public boolean cook() {
+        if (this.cookable) {
+            this.state = IngredientState.COOKED;
+            this.cookable = false;
+            this.choppable = false;
+            this.canPlaceOnPlate = true;
+            return true;
+        }
+        return false;
     }
 
     @Override
     public String toString() {
-        return super.toString() + " (" + state + ")";
+        return name + " [" + state + "]";
     }
 }
