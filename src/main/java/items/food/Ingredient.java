@@ -4,89 +4,66 @@ import items.Item;
 import items.Preparable;
 
 public class Ingredient extends Item implements Preparable {
-    private String name;
+    private String name;            
     private IngredientState state;
-    
-    private boolean choppable;
-    private boolean cookable;
-    private boolean canPlaceOnPlate;
 
-    public Ingredient(String name) {
-        this.name = name; 
+    private Ingredient(String name) {
+        this.name = name;
         this.state = IngredientState.RAW;
-        
-        // Default logic awal
-        this.choppable = true;
-        this.cookable = true;
-        this.canPlaceOnPlate = false; 
     }
 
-    public void setName(String newName) {
-        this.name = newName;
+    public static Ingredient create(String name) {
+        return new Ingredient(name);
     }
 
     public String getName() {
         return name;
     }
 
-    public void setState(IngredientState newState) {
-        this.state = newState;
+    public void setName(String name) {
+        this.name = name;
     }
 
     public IngredientState getState() {
         return state;
     }
 
-    public void setChoppable(boolean bol) {
-        this.choppable = bol;
+    public void setState(IngredientState state) {
+        this.state = state;
     }
-
-    public void setCookable(boolean bol) {
-        this.cookable = bol;
-    }
-
-    public void setcanPlaceOnPlate(boolean bol) {
-        this.canPlaceOnPlate = bol;
-    }
-
 
     @Override
     public boolean canBeChopped() {
-        return this.choppable;
+        return state == IngredientState.RAW;
     }
 
     @Override
     public boolean canBeCooked() {
-        return this.cookable;
+        return state == IngredientState.RAW || state == IngredientState.CHOPPED;
     }
 
     @Override
     public boolean canBePlacedOnPlate() {
-        return this.canPlaceOnPlate;
+        return state != IngredientState.RAW && state != IngredientState.BURNED;
     }
 
     @Override
-    public boolean chop() {
-        if (this.choppable) {
+    public void chop() {
+        if (canBeChopped()) {
             this.state = IngredientState.CHOPPED;
-            this.choppable = false; 
-            this.cookable = true; 
-            return true;
         }
-        return false;
     }
 
     @Override
-    public boolean cook() {
-        if (this.cookable) {
+    public void cook() {
+        if (canBeCooked()) {
             this.state = IngredientState.COOKED;
-            this.cookable = false;
-            this.choppable = false;
-            this.canPlaceOnPlate = true;
-            return true;
         }
-        return false;
     }
+
+    @Override public void setChoppable(boolean choppable) {}
+    @Override public void setCookable(boolean cookable) {}
+    @Override public void setcanPlaceOnPlate(boolean canPlace) {}
 
     @Override
     public String toString() {
