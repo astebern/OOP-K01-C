@@ -1,6 +1,9 @@
 package items.food;
 
-public class IngredientState {
-    
+public enum IngredientState {
+    RAW,        
+    CHOPPED,    
+    COOKING,   
+    COOKED,   
+    BURNED     
 }
-
