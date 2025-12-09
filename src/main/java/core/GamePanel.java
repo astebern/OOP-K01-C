@@ -2,6 +2,7 @@ package core;
 
 import entities.Chef;
 import map.GameMap;
+import utils.BetterComments;
 import utils.Position;
 
 import javax.swing.*;
@@ -23,6 +24,7 @@ public class GamePanel extends JPanel implements Runnable{
     Thread gameThread;
     GameMaster gameMaster;
 
+    @BetterComments(description = "Sets up rendering and input and spawn chefs",type="constructor")
     public GamePanel(GameMaster gameMaster){
         this.gameMaster = gameMaster;
         this.setPreferredSize(new Dimension(screenWidth, screenHeight));
@@ -45,6 +47,7 @@ public class GamePanel extends JPanel implements Runnable{
         gameMaster.addChef(chef2);
     }
 
+    @BetterComments(description = "Creates game loop on seperate thread",type="method")
     public void startGameThread(){
         gameThread = new Thread(this);
         gameThread.start();
@@ -71,8 +74,8 @@ public class GamePanel extends JPanel implements Runnable{
         }
     }
 
+    @BetterComments(description = "Updates Active Chef",type="method")
     public void update(){
-        // Handle chef switching
         if (keyH.switchChef) {
             System.out.println("GamePanel.update() detected switchChef flag, calling gameMaster.switchChef()");
             gameMaster.switchChef();
@@ -86,6 +89,7 @@ public class GamePanel extends JPanel implements Runnable{
         }
     }
 
+    @BetterComments(description = "Renders the game map, all chefs, and a visual indicator around the currently active chef.",type="method")
     public void paintComponent(Graphics g){
         super.paintComponent(g);
         Graphics2D g2 = (Graphics2D)g;
