@@ -1,6 +1,7 @@
 package map;
 
 import core.GamePanel;
+import utils.BetterComments;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -13,6 +14,7 @@ public class GameMap {
     private static final int MAP_WIDTH = 14;
     private static final int MAP_HEIGHT = 10;
 
+    @BetterComments(description = "Creates the tile array and map grid, loads tile graphics and collision settings, and initializes the kitchen layout",type="constructor")
     public GameMap(GamePanel gp){
         this.gp = gp;
         tiles = new Tile [11];
@@ -21,6 +23,7 @@ public class GameMap {
         initializeMap();
     }
 
+    @BetterComments(description ="Populates Map Data" ,type="method")
     private void initializeMap() {
         for (int y = 0; y < MAP_HEIGHT; y++) {
             for (int x = 0; x < MAP_WIDTH; x++) {
@@ -118,6 +121,7 @@ public class GameMap {
 
     }
 
+    @BetterComments(description = "Loads all tile images from resources and configures which tiles are walkable or solid",type="method")
     public void getTileImage() {
         try{
             //floor(walkable space)
@@ -169,6 +173,7 @@ public class GameMap {
         }
     }
 
+    @BetterComments(description = "Renders the entire tile map to the screen by drawing the correct tile image at each grid position",type="method")
     public void draw(Graphics2D g2){
         for (int y = 0; y < MAP_HEIGHT; y++) {
             for (int x = 0; x < MAP_WIDTH; x++) {
@@ -180,6 +185,7 @@ public class GameMap {
         }
     }
 
+    @BetterComments(description = "returns whether that location is blocked by a collidable tile or out-of-bounds." ,type="method")
     public boolean checkCollision(int worldX, int worldY) {
         int col = worldX / gp.tileSize;
         int row = worldY / gp.tileSize;

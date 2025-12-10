@@ -5,6 +5,7 @@ import core.KeyHandler;
 import items.Item;
 import map.GameMap;
 import utils.Actions;
+import utils.BetterComments;
 import utils.Direction;
 import utils.Position;
 
@@ -29,6 +30,7 @@ public class Chef {
     private int spriteCounter = 0;
     private int spriteNum = 1;
 
+    @BetterComments(description = "Initializes a chef character at the given position",type="constructor")
     public Chef(GamePanel gp, KeyHandler keyH, GameMap gameMap, int x, int y){
         this.gp = gp;
         this.keyH=keyH;
@@ -38,6 +40,8 @@ public class Chef {
         this.direction = Direction.DOWN;
         getImage();
     }
+
+    @BetterComments(description ="Loads the chef’s directional sprite images from the resources folder" ,type = "method")
     public void getImage(){
         try{
             up1 = ImageIO.read(getClass().getResourceAsStream("/player/up1.png"));
@@ -55,7 +59,7 @@ public class Chef {
         }
     }
 
-
+    @BetterComments(description = "Reads movement input, calculates the next position, checks for tile collisions",type="method")
     public void update(){
         if (keyH.directionNow != null && keyH.directionNow != Direction.NONE) {
             int nextX = this.position.getX();
@@ -109,6 +113,8 @@ public class Chef {
             }
         }
     }
+
+    @BetterComments(description = "Renders the current animation frame of the chef at its position on the screen",type="method")
     public void draw(Graphics2D g2){
         BufferedImage image = null;
         switch (direction){
