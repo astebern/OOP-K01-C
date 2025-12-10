@@ -4,6 +4,7 @@ import core.GamePanel;
 import core.KeyHandler;
 import items.Item;
 import map.GameMap;
+import stations.Station;
 import utils.Actions;
 import utils.BetterComments;
 import utils.Direction;
@@ -36,6 +37,7 @@ public class Chef {
         //TODO:Name (masih bingung ini)
         this.inventory=null;
         this.currentActions=Actions.IDLE;
+        this.state = true; // true = not busy, false = busy
         this.id= "Chef"+chef_num;
         this.gp = gp;
         this.keyH=keyH;
@@ -67,6 +69,18 @@ public class Chef {
 
     @BetterComments(description = "Reads movement input, calculates the next position, checks for tile collisions",type="method")
     public void update(){
+        if (keyH.pickUpDropPressed) {
+            pickUpDrop();
+            keyH.pickUpDropPressed = false;
+            return;
+        }
+
+        if (keyH.interactPressed) {
+            interactWithStation();
+            keyH.interactPressed = false;
+            return;
+        }
+
         if (keyH.directionNow != null && keyH.directionNow != Direction.NONE) {
             int nextX = this.position.getX();
             int nextY = this.position.getY();
@@ -104,6 +118,8 @@ public class Chef {
             if (!collision) {
                 this.position.setX(nextX);
                 this.position.setY(nextY);
+                this.currentActions = Actions.MOVING;
+                this.state = true;
             }
 
 
@@ -116,6 +132,10 @@ public class Chef {
                     spriteNum++;
                     if (spriteNum > 3) spriteNum = 1;
                 }
+            }
+        } else {
+            if (this.currentActions == Actions.MOVING) {
+                this.currentActions = Actions.IDLE;
             }
         }
     }
@@ -144,12 +164,107 @@ public class Chef {
         g2.drawImage(image,this.position.getX(),this.position.getY(),gp.tileSize,gp.tileSize,null);
     }
 
+    @BetterComments(description = "Handles picking up items from stations or dropping items from inventory", type="method")
     public void pickUpDrop(){
+        int targetX = getTileX();
+        int targetY = getTileY();
 
+        switch (direction) {
+            case UP:
+                targetY--;
+                break;
+            case DOWN:
+                targetY++;
+                break;
+            case LEFT:
+                targetX--;
+                break;
+            case RIGHT:
+                targetX++;
+                break;
+        }
+
+        if (targetX < 0 || targetX >= gameMap.getMapWidth() ||
+            targetY < 0 || targetY >= gameMap.getMapHeight()) {
+            return;
+        }
+
+        Item itemOnTile = gameMap.getItemAt(targetX, targetY);
+
+        if (inventory == null) {
+            if (itemOnTile != null) {
+                this.inventory = itemOnTile;
+                gameMap.setTileData(targetX, targetY, gameMap.getStationAt(targetX, targetY), null);
+                this.currentActions = Actions.PICKINGUP;
+                this.state = true;
+                System.out.println(id + " picked up item from (" + targetX + ", " + targetY + ")");
+            }
+        } else {
+            if (itemOnTile == null) {
+                gameMap.setTileData(targetX, targetY, gameMap.getStationAt(targetX, targetY), this.inventory);
+                this.inventory = null;
+                this.currentActions = Actions.DROOPINGDOWN;
+                this.state = true;
+                System.out.println(id + " dropped item at (" + targetX + ", " + targetY + ")");
+            } else {
+                System.out.println(id + " cannot drop - tile already has an item");
+            }
+        }
+
+        this.currentActions = Actions.IDLE;
     }
 
+    @BetterComments(description = "Handles interaction with stations to use their functionality", type="method")
     public void interactWithStation(){
+        int targetX = getTileX();
+        int targetY = getTileY();
 
+        switch (direction) {
+            case UP:
+                targetY--;
+                break;
+            case DOWN:
+                targetY++;
+                break;
+            case LEFT:
+                targetX--;
+                break;
+            case RIGHT:
+                targetX++;
+                break;
+        }
+
+        if (targetX < 0 || targetX >= gameMap.getMapWidth() ||
+            targetY < 0 || targetY >= gameMap.getMapHeight()) {
+            return;
+        }
+
+        Station station = gameMap.getStationAt(targetX, targetY);
+
+        if (station != null) {
+            this.currentActions = Actions.USINGSTATION;
+            this.state = false;
+            System.out.println(id + " is interacting with " + station.getClass().getSimpleName() +
+                             " at (" + targetX + ", " + targetY + ")");
+
+            // TODO:Implement stuff per station
+            // nanti gw buat MALAS SKRG
+            // After using station
+            this.state = true;
+            this.currentActions = Actions.IDLE;
+        } else {
+            System.out.println(id + " - no station to interact with");
+        }
+    }
+
+    @BetterComments(description = "Gets the tile X coordinate the chef is standing on", type="method")
+    private int getTileX() {
+        return (this.position.getX() + gp.tileSize / 2) / gp.tileSize;
+    }
+
+    @BetterComments(description = "Gets the tile Y coordinate the chef is standing on", type="method")
+    private int getTileY() {
+        return (this.position.getY() + gp.tileSize / 2) / gp.tileSize;
     }
 
     // Getters and Setters
