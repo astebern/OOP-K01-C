@@ -1,6 +1,6 @@
 package stations;
 
-public class TrashStation {
+public class TrashStation extends Station {
     
 }
 

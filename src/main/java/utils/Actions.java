@@ -1,4 +1,9 @@
 package utils;
 
-public class Actions {
+public enum Actions {
+    MOVING,
+    PICKINGUP,
+    DROOPINGDOWN,
+    USINGSTATION,
+    IDLE
 }

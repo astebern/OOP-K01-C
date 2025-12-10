@@ -15,13 +15,14 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 
 public class Chef {
+    private static int chef_num=1;
     private String id ;
     private String name;
     private Position position;
     private Direction direction;
     private Item inventory;
-    private Actions Action;
-    private boolean state;
+    private Actions currentActions;
+    private boolean state; //true=not busy , false =busy
     final private int speed;
     private GamePanel gp;
     private KeyHandler keyH;
@@ -32,6 +33,10 @@ public class Chef {
 
     @BetterComments(description = "Initializes a chef character at the given position",type="constructor")
     public Chef(GamePanel gp, KeyHandler keyH, GameMap gameMap, int x, int y){
+        //TODO:Name (masih bingung ini)
+        this.inventory=null;
+        this.currentActions=Actions.IDLE;
+        this.id= "Chef"+chef_num;
         this.gp = gp;
         this.keyH=keyH;
         this.gameMap = gameMap;
@@ -39,6 +44,7 @@ public class Chef {
         this.speed =7;
         this.direction = Direction.DOWN;
         getImage();
+        chef_num++;
     }
 
     @BetterComments(description ="Loads the chef’s directional sprite images from the resources folder" ,type = "method")
@@ -138,13 +144,17 @@ public class Chef {
         g2.drawImage(image,this.position.getX(),this.position.getY(),gp.tileSize,gp.tileSize,null);
     }
 
+    public void pickUpDrop(){
+
+    }
+
+    public void interactWithStation(){
+
+    }
+
     // Getters and Setters
     public String getId() {
         return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
     }
 
     public String getName() {
@@ -179,12 +189,12 @@ public class Chef {
         this.inventory = inventory;
     }
 
-    public Actions getAction() {
-        return Action;
+    public Actions getCurrentActions() {
+        return currentActions;
     }
 
-    public void setAction(Actions action) {
-        this.Action = action;
+    public void setCurrentActions(Actions currentActions) {
+        this.currentActions = currentActions;
     }
 
     public boolean isState() {

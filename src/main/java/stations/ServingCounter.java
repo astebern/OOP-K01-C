@@ -1,6 +1,6 @@
 package stations;
 
-public class ServingCounter {
+public class ServingCounter extends Station {
     
 }
 

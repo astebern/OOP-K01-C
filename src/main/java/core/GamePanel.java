@@ -24,6 +24,7 @@ public class GamePanel extends JPanel implements Runnable{
     Thread gameThread;
     GameMaster gameMaster;
 
+
     @BetterComments(description = "Sets up rendering and input and spawn chefs",type="constructor")
     public GamePanel(GameMaster gameMaster){
         this.gameMaster = gameMaster;
@@ -36,11 +37,9 @@ public class GamePanel extends JPanel implements Runnable{
         this.setFocusTraversalKeysEnabled(false);
 
         Chef chef1 = new Chef(this, keyH, tileM, 2 * tileSize, 3 * tileSize);
-        chef1.setId("chef1");
         chef1.setName("Chef 1");
 
         Chef chef2 = new Chef(this, keyH, tileM, 11 * tileSize, 6 * tileSize);
-        chef2.setId("chef2");
         chef2.setName("Chef 2");
 
         gameMaster.addChef(chef1);

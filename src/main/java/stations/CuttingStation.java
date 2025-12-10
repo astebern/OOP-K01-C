@@ -1,6 +1,6 @@
 package stations;
 
-public class CuttingStation {
+public class CuttingStation extends Station {
     
 }
 
