@@ -1,24 +1,42 @@
 package map;
 
 import core.GamePanel;
+import items.Item;
+import stations.*;
 import utils.BetterComments;
+import utils.Position;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class GameMap {
     GamePanel gp;
     Tile[] tiles;
     int[][] mapData;
+    private final Map<Position, TileData> tileDataMap;
     private static final int MAP_WIDTH = 14;
     private static final int MAP_HEIGHT = 10;
+
+    @BetterComments(description = "inner class to store Station and item data for each tile",type="inner class")
+    private static class TileData {
+        Station station;
+        Item item;
+
+        public TileData(Station station, Item item) {
+            this.station = station;
+            this.item = item;
+        }
+    }
 
     @BetterComments(description = "Creates the tile array and map grid, loads tile graphics and collision settings, and initializes the kitchen layout",type="constructor")
     public GameMap(GamePanel gp){
         this.gp = gp;
         tiles = new Tile [11];
         mapData = new int[MAP_HEIGHT][MAP_WIDTH];
+        tileDataMap = new HashMap<>();
         getTileImage();
         initializeMap();
     }
@@ -119,6 +137,43 @@ public class GameMap {
         mapData[8][13] =3;
         mapData[9][13] =2;
 
+        // Populate tile data map with stations (no items)
+        populateTileData();
+    }
+
+    @BetterComments(description = "Populates the tile data map with station instances for each tile position", type="method")
+    private void populateTileData() {
+        for (int y = 0; y < MAP_HEIGHT; y++) {
+            for (int x = 0; x < MAP_WIDTH; x++) {
+                int tileId = mapData[y][x];
+                Station station = createStationForTile(tileId);
+                setTileData(x, y, station, null); // No items at start of game
+            }
+        }
+    }
+
+    @BetterComments(description = "Creates the appropriate station instance based on tile ID", type="method")
+    private Station createStationForTile(int tileId) {
+        switch (tileId) {
+            case 3:  // Trash Station
+                return new TrashStation();
+            case 4:  // Plate Storage
+                return new PlateStorage();
+            case 5:  // Ingredient Storage
+                return new IngredientStorage();
+            case 6:  // Washing Station
+                return new WashingStation();
+            case 7:  // Serving Counter
+                return new ServingCounter();
+            case 8:  // Assembly Station
+                return new AssemblyStation();
+            case 9:  // Cooking Station
+                return new CookingStation();
+            case 10: // Cutting Station
+                return new CuttingStation();
+            default:
+                return null; // No station for floor, spawn, and wall tiles
+        }
     }
 
     @BetterComments(description = "Loads all tile images from resources and configures which tiles are walkable or solid",type="method")
@@ -204,6 +259,51 @@ public class GameMap {
 
     public int getMapHeight() {
         return MAP_HEIGHT;
+    }
+
+
+    @BetterComments(description = "Sets the Station and Item data for a specific tile position", type="method")
+    public void setTileData(int x, int y, Station station, Item item) {
+        Position pos = new Position(x, y);
+        tileDataMap.put(pos, new TileData(station, item));
+    }
+
+    @BetterComments(description = "Gets the Station at a specific tile position", type="method")
+    public Station getStationAt(int x, int y) {
+        TileData data = tileDataMap.get(new Position(x, y));
+        return data != null ? data.station : null;
+    }
+
+    @BetterComments(description = "Gets the Item at a specific tile position", type="method")
+    public Item getItemAt(int x, int y) {
+        TileData data = tileDataMap.get(new Position(x, y));
+        return data != null ? data.item : null;
+    }
+
+    @BetterComments(description = "Removes tile data from a specific position", type="method")
+    public void clearTileData(int x, int y) {
+        tileDataMap.remove(new Position(x, y));
+    }
+
+    @BetterComments(description = "Prints the contents of tileDataMap for debugging", type="method")
+    public void printTileDataMap() {
+        System.out.println("=== Tile Data Map Contents ===");
+        System.out.println("Total tiles in map: " + (MAP_WIDTH * MAP_HEIGHT));
+        System.out.println("Total tiles with data: " + tileDataMap.size());
+        System.out.println("\nAll Tiles:");
+
+        for (int y = 0; y < MAP_HEIGHT; y++) {
+            for (int x = 0; x < MAP_WIDTH; x++) {
+                Station station = getStationAt(x, y);
+                Item item = getItemAt(x, y);
+
+                String stationName = station != null ? station.getClass().getSimpleName() : "null";
+                String itemName = item != null ? item.getClass().getSimpleName() : "null";
+                System.out.println("Position (" + x + ", " + y + ") - Tile ID: " + mapData[y][x] +
+                                 " - Station: " + stationName + " - Item: " + itemName);
+            }
+        }
+        System.out.println("==============================");
     }
 }
 

@@ -1,6 +1,6 @@
 package stations;
 
-public class PlateStorage {
+public class PlateStorage extends Station {
     
 }
 

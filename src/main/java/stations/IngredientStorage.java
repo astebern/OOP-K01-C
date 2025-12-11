@@ -1,6 +1,6 @@
 package stations;
 
-public class IngredientStorage {
-    
+public class IngredientStorage extends Station {
+
 }
 

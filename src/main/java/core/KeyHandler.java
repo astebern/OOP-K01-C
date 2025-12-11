@@ -10,6 +10,8 @@ import java.util.Set;
 public class KeyHandler implements KeyListener{
     public Direction directionNow = Direction.NONE;
     public boolean switchChef = false;
+    public boolean interactPressed = false;
+    public boolean pickUpDropPressed = false;
     private final Set<Integer> pressedKeys = new HashSet<>();
 
     @Override
@@ -25,6 +27,16 @@ public class KeyHandler implements KeyListener{
             switchChef = true;
             System.out.println("TAB key pressed - switchChef flag set to true");
             e.consume();
+            return;
+        }
+
+        if (code == KeyEvent.VK_E) {
+            interactPressed = true;
+            return;
+        }
+
+        if (code == KeyEvent.VK_Q) {
+            pickUpDropPressed = true;
             return;
         }
 

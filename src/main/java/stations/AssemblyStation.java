@@ -1,6 +1,6 @@
 package stations;
 
-public class AssemblyStation {
+public class AssemblyStation extends Station {
     
 }
 
