@@ -12,6 +12,7 @@ import utils.Position;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -192,11 +193,10 @@ public class GameMap {
 
                     setTileData(x, y, station, ingredient);
                 } else if (tileId == 4) {
-                    // Plate Storage - add plate
+                    // Plate Storage - plates are stored internally in PlateStorage stack
                     Station station = createStationForTile(tileId);
-                    Plate plate = new Plate();
-                    System.out.println("Placed Plate at PlateStorage (" + x + ", " + y + ")");
-                    setTileData(x, y, station, plate);
+                    System.out.println("Initialized PlateStorage at (" + x + ", " + y + ") with 4 plates");
+                    setTileData(x, y, station, null); // No item on tile - plates stored internally
                 } else if (tileId == 9) {
                     // Cooking Station - add utensil based on x position
                     Station station = createStationForTile(tileId);
@@ -315,6 +315,27 @@ public class GameMap {
         for (int y = 0; y < MAP_HEIGHT; y++) {
             for (int x = 0; x < MAP_WIDTH; x++) {
                 Item item = getItemAt(x, y);
+
+                // Special case: Draw plate on PlateStorage if it has plates
+                Station station = getStationAt(x, y);
+                if (station instanceof PlateStorage) {
+                    PlateStorage plateStorage = (PlateStorage) station;
+                    if (plateStorage.hasPlates()) {
+                        // Draw a plate image to indicate plates are available
+                        try {
+                            BufferedImage plateImage = ImageIO.read(getClass().getResourceAsStream("/items/kitchenUtensils/plate.png"));
+                            int itemSize = 48; // 48x48 pixels for plate
+                            int screenX = x * gp.tileSize + (gp.tileSize - itemSize) / 2;
+                            int screenY = y * gp.tileSize + (gp.tileSize - itemSize) / 2;
+                            g2.drawImage(plateImage, screenX, screenY, itemSize, itemSize, null);
+                        } catch (Exception e) {
+                            System.err.println("Failed to load plate image for PlateStorage rendering");
+                        }
+                    }
+                    // Don't render normal item if this is PlateStorage (item should be null anyway)
+                    continue;
+                }
+
                 if (item != null && item.getImage() != null) {
                     // Kitchen utensils have different sizes
                     int itemSize;
@@ -330,6 +351,24 @@ public class GameMap {
                     int screenX = x * gp.tileSize + (gp.tileSize - itemSize) / 2;
                     int screenY = y * gp.tileSize + (gp.tileSize - itemSize) / 2;
                     g2.drawImage(item.getImage(), screenX, screenY, itemSize, itemSize, null);
+                    
+                    // If item is a Plate, draw the ingredient on top of it
+                    if (item instanceof Plate) {
+                        Plate plate = (Plate) item;
+                        if (!plate.getContents().isEmpty()) {
+                            items.Preparable content = plate.getContents().get(0);
+                            if (content instanceof Item) {
+                                Item ingredientItem = (Item) content;
+                                if (ingredientItem.getImage() != null) {
+                                    // Draw ingredient on top of plate (smaller, centered)
+                                    int ingredientSize = gp.tileSize / 3; // Smaller than normal ingredient
+                                    int ingredientX = x * gp.tileSize + (gp.tileSize - ingredientSize) / 2;
+                                    int ingredientY = y * gp.tileSize + (gp.tileSize - ingredientSize) / 2 - 5; // Slightly above center
+                                    g2.drawImage(ingredientItem.getImage(), ingredientX, ingredientY, ingredientSize, ingredientSize, null);
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

@@ -12,6 +12,13 @@ public class Plate extends KitchenUtensil {
         loadImage();
     }
 
+    /**
+     * Factory method to create a clean plate
+     */
+    public static Plate createClean() {
+        return new Plate();
+    }
+
     private void loadImage() {
         try {
             String path = "/items/kitchenUtensils/plate.png";
@@ -36,6 +43,15 @@ public class Plate extends KitchenUtensil {
     public void setIsDirty() {
         this.contents.clear();
         this.isDirty = true;
+    }
+
+    @Override
+    public void addContent(items.Preparable item) {
+        if (contents.isEmpty()) {
+            super.addContent(item);
+        } else {
+            System.out.println("Plate is full (capacity: 1 item)");
+        }
     }
 
     @Override

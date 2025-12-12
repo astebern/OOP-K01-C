@@ -73,6 +73,7 @@ public class FryingPan extends KitchenUtensil implements CookingDevice {
     public void addIngredient(Preparable item) {
         if (contents.size() < capacity && canAccept(item)) {
             super.addContent(item);
+            updateCookingImage(); // Show cooking image immediately
         } else {
             System.out.println("Frying Pan refused item: " + item);
         }
@@ -119,7 +120,6 @@ public class FryingPan extends KitchenUtensil implements CookingDevice {
         // Otherwise show cooking image
         switch (name) {
             case "daging":
-                return "/items/cooking/fryMeat.png";
             case "ikan":
                 return "/items/cooking/fryMeat.png"; // Use same image for both meat and fish
             case "udang":
