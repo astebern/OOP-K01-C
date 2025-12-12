@@ -4,7 +4,7 @@ import utils.BetterComments;
 
 import javax.swing.*;
 
-public class Main {
+public class    Main {
 
     @BetterComments(description = "Get GameMaster singleton instance and start game", type ="method")
     public static void main(String[] args){

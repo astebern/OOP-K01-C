@@ -1,205 +1,215 @@
 package core;
 
 import items.food.Dish;
-import items.food.IngredientState;
 import items.food.Recipe;
-import items.food.Requirement;
+import stations.AssemblyStation;
+import utils.BetterComments;
+
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 import java.util.Random;
 
 public class OrderManager {
-    private GameMaster gameMaster;
     private List<Order> activeOrders;
-    private Queue<Order> pendingOrders; // Antrian pesanan yang belum muncul
-    private int score = 0;
-    
-    // Level Timer (dalam frame, asumsi 60 FPS)
-    private int levelTimeLimit; 
-    private int currentLevelTime;
+    private int maxConcurrentOrders = 3;
+    private Random random;
+    private int score;
+    private int money;
+    private int ordersCompleted;
+    private int ordersFailed;
+    private long lastUpdateTime;
+    private boolean gameOver;
+    private String gameOverReason;
+    private static final int MAX_FAILED_ORDERS = 3;
 
-    // Logic Spawn Berurutan
-    private int spawnTimer = 0;
-    private int nextSpawnDelay = 0;
-    private Random random = new Random();
+    // Stage timer fields
+    private long stageStartTime;
+    private long stageTimeLimit; // in milliseconds
+    private static final long DEFAULT_STAGE_TIME = 5 * 60 * 1000; // 5 minutes in milliseconds
 
-    // Definisi Resep
-    private Recipe pastaMarinara;
-    private Recipe pastaBolognese;
-    private Recipe pastaFrutti;
-
-    public OrderManager(GameMaster gm) {
-        this.gameMaster = gm;
+    @BetterComments(description="Initializes the order manager with random orders", type="constructor")
+    public OrderManager() {
         this.activeOrders = new ArrayList<>();
-        this.pendingOrders = new LinkedList<>();
-        initializeRecipes();
-    }
+        this.random = new Random();
+        this.score = 0;
+        this.money = 0;
+        this.ordersCompleted = 0;
+        this.ordersFailed = 0;
+        this.lastUpdateTime = System.currentTimeMillis();
+        this.gameOver = false;
+        this.gameOverReason = "";
 
-    private void initializeRecipes() {
-        // 1. Pasta Marinara: Pasta (Cooked) + Tomat (Cooked)
-        List<Requirement> r1 = new ArrayList<>();
-        r1.add(new Requirement("Pasta", IngredientState.COOKED));
-        r1.add(new Requirement("Tomat", IngredientState.COOKED));
-        pastaMarinara = new Recipe("Pasta Marinara", r1);
+        // Initialize stage timer
+        this.stageTimeLimit = DEFAULT_STAGE_TIME;
+        this.stageStartTime = System.currentTimeMillis();
 
-        // 2. Pasta Bolognese: Pasta (Cooked) + Daging (Cooked)
-        List<Requirement> r2 = new ArrayList<>();
-        r2.add(new Requirement("Pasta", IngredientState.COOKED));
-        r2.add(new Requirement("Daging", IngredientState.COOKED));
-        pastaBolognese = new Recipe("Pasta Bolognese", r2);
-
-        // 3. Frutti di Mare: Pasta (Cooked) + Udang (Cooked) + Ikan (Cooked)
-        List<Requirement> r3 = new ArrayList<>();
-        r3.add(new Requirement("Pasta", IngredientState.COOKED));
-        r3.add(new Requirement("Udang", IngredientState.COOKED));
-        r3.add(new Requirement("Ikan", IngredientState.COOKED));
-        pastaFrutti = new Recipe("Frutti di Mare", r3);
-    }
-
-    // Load konfigurasi resep berdasarkan stage
-    public void loadStage(int stage) {
-        activeOrders.clear();
-        pendingOrders.clear();
-        score = 0;
-        spawnTimer = 0;
-
-        if (stage == 1) {
-            // Stage 1: 1 Marinara, 1 Bolognese, 1 Frutti (2 Menit)
-            levelTimeLimit = 2 * 60 * 60; // 2 menit * 60 detik * 60 FPS
-            addPendingOrder(pastaMarinara);
-            addPendingOrder(pastaBolognese);
-            addPendingOrder(pastaFrutti);
-        } 
-        else if (stage == 2) {
-            // Stage 2: 2 Marinara, 1 Bolognese, 2 Frutti (2 Menit)
-            levelTimeLimit = 2 * 60 * 60;
-            addPendingOrder(pastaMarinara); addPendingOrder(pastaMarinara);
-            addPendingOrder(pastaBolognese);
-            addPendingOrder(pastaFrutti); addPendingOrder(pastaFrutti);
-        } 
-        else if (stage == 3) {
-            // Stage 3: 2 Marinara, 2 Bolognese, 2 Frutti (1.5 Menit)
-            levelTimeLimit = 90 * 60; // 90 detik * 60 FPS
-            addPendingOrder(pastaMarinara); addPendingOrder(pastaMarinara);
-            addPendingOrder(pastaBolognese); addPendingOrder(pastaBolognese);
-            addPendingOrder(pastaFrutti); addPendingOrder(pastaFrutti);
-        } 
-        else if (stage == 4) {
-            // Stage 4: 3 Marinara, 3 Bolognese, 3 Frutti (2 Menit)
-            levelTimeLimit = 2 * 60 * 60;
-            for(int i=0; i<3; i++) addPendingOrder(pastaMarinara);
-            for(int i=0; i<3; i++) addPendingOrder(pastaBolognese);
-            for(int i=0; i<3; i++) addPendingOrder(pastaFrutti);
+        // Generate initial orders
+        for (int i = 0; i < maxConcurrentOrders; i++) {
+            generateNewOrder(i);
         }
-
-        currentLevelTime = levelTimeLimit;
-        
-        // Spawn 1 order pertama langsung
-        spawnNextOrder();
-        setNextSpawnDelay();
     }
 
-    private void addPendingOrder(Recipe recipe) {
-        int patienceTime = 45; // 45 Detik waktu tunggu per pelanggan
-        // ID order sementara 0, nanti diupdate saat masuk activeOrders
-        Order o = new Order(0, recipe, 100, 50, patienceTime);
-        pendingOrders.add(o);
-    }
-
-    // Set delay acak untuk spawn berikutnya (antara 300 - 600 frames / 5-10 detik)
-    private void setNextSpawnDelay() {
-        nextSpawnDelay = 300 + random.nextInt(300); 
-    }
-
-    public void update() {
-        // 1. Kurangi Level Timer
-        if (currentLevelTime > 0) {
-            currentLevelTime--;
-        } else {
-            // Waktu Habis -> Cek apakah masih ada order tersisa
-            if (!activeOrders.isEmpty() || !pendingOrders.isEmpty()) {
-                gameMaster.levelFailed();
-            }
+    @BetterComments(description="Generates a new random order from available recipes", type="method")
+    private void generateNewOrder(int position) {
+        List<Recipe> allRecipes = AssemblyStation.getRecipes();
+        if (allRecipes.isEmpty()) {
             return;
         }
 
-        // 2. Logic Spawn Berurutan
-        // Spawn hanya jika slot active < 4 DAN masih ada pending order
-        if (activeOrders.size() < 4 && !pendingOrders.isEmpty()) {
-            spawnTimer++;
-            if (spawnTimer >= nextSpawnDelay) {
-                spawnNextOrder();
-                spawnTimer = 0;
-                setNextSpawnDelay();
-            }
+        // Pick a random recipe
+        Recipe randomRecipe = allRecipes.get(random.nextInt(allRecipes.size()));
+
+        // Calculate time limit based on recipe complexity (number of ingredients)
+        int ingredientCount = randomRecipe.getRequiredComponents().size();
+        int timeLimit = 60 + (ingredientCount * 15); // 60s base + 15s per ingredient
+
+        // Calculate reward based on complexity
+        int reward = 50 * ingredientCount;
+        int penalty = 25 * ingredientCount;
+
+        Order newOrder = new Order(position, randomRecipe, reward, penalty, timeLimit);
+        newOrder.startTimer(); // Start the timer
+        activeOrders.add(newOrder);
+
+        System.out.println("OrderManager: Generated new order - " + randomRecipe.getName() +
+                         " (Time: " + timeLimit + "s, Reward: $" + reward + ")");
+    }
+
+    @BetterComments(description="Updates order timers and handles expired orders", type="method")
+    public void update() {
+        if (gameOver) return; // Don't update if game is over
+
+        long currentTime = System.currentTimeMillis();
+        long deltaTime = currentTime - lastUpdateTime;
+        lastUpdateTime = currentTime;
+
+        // Check if stage time has run out
+        long elapsedTime = currentTime - stageStartTime;
+        if (elapsedTime >= stageTimeLimit) {
+            gameOver = true;
+            gameOverReason = "Time's up! Stage time limit reached (5 minutes)";
+            System.out.println("OrderManager: GAME OVER - " + gameOverReason);
+            return;
         }
 
-        // 3. Update Timer untuk Order yang sedang aktif
+        // Check for expired orders
         List<Order> expiredOrders = new ArrayList<>();
         for (Order order : activeOrders) {
-            order.decreaseTime();
+            order.updateTimer(deltaTime);
+
             if (order.isExpired()) {
                 expiredOrders.add(order);
             }
         }
 
-        // 4. Handle Order yang Expired
-        for (Order o : expiredOrders) {
-            System.out.println("Order Expired: " + o.getRecipe().getName());
-            score -= o.getPenalty();
-            activeOrders.remove(o);
-            
-            // Masukkan kembali ke antrian belakang (Retry)
-            addPendingOrder(o.getRecipe()); 
-            
-            // Reset spawn timer biar tidak langsung muncul
-            spawnTimer = 0; 
-        }
-        
-        // Update posisi visual di GUI
-        updateOrderPositions();
+        // Handle expired orders
+        for (Order expiredOrder : expiredOrders) {
+            System.out.println("OrderManager: Order expired - " + expiredOrder.getRecipe().getName());
+            money -= expiredOrder.getPenalty(); // Apply penalty
+            if (money < 0) money = 0;
 
-        // 5. Cek Win Condition (Semua habis & terselesaikan)
-        if (activeOrders.isEmpty() && pendingOrders.isEmpty()) {
-            gameMaster.levelCleared();
+            ordersFailed++; // Increment failed orders
+            System.out.println("OrderManager: Failed orders: " + ordersFailed + "/" + MAX_FAILED_ORDERS);
+
+            int position = expiredOrder.getPosisiOrder();
+            activeOrders.remove(expiredOrder);
+
+            // Check if game over due to failed orders
+            if (ordersFailed >= MAX_FAILED_ORDERS) {
+                gameOver = true;
+                gameOverReason = "Too many failed orders! (" + MAX_FAILED_ORDERS + " orders expired)";
+                System.out.println("OrderManager: GAME OVER - " + gameOverReason);
+                return; // Don't generate new orders
+            }
+
+            // Generate a new order in the same position
+            generateNewOrder(position);
         }
     }
 
-    private void spawnNextOrder() {
-        if (!pendingOrders.isEmpty()) {
-            Order nextOrder = pendingOrders.poll();
-            nextOrder.setPosisiOrder(activeOrders.size());
-            activeOrders.add(nextOrder);
-            System.out.println("New Order Spawned: " + nextOrder.getRecipe().getName());
-        }
-    }
-    
-    private void updateOrderPositions() {
-        for (int i = 0; i < activeOrders.size(); i++) {
-            activeOrders.get(i).setPosisiOrder(i);
-        }
-    }
+    @BetterComments(description="Checks if a dish matches any active order and completes it", type="method")
+    public boolean checkAndCompleteOrder(Dish dish) {
+        if (gameOver) return false; // Don't accept orders if game is over
 
-    public boolean deliverDish(Dish dish) {
         for (Order order : activeOrders) {
-            if (order.getRecipe().validateDish(dish)) {
-                System.out.println("Order Success! " + dish.getName());
+            if (order.compareDishAndRecipe(dish, order.getRecipe())) {
+                System.out.println("OrderManager: Order completed - " + order.getRecipe().getName() +
+                                 " (Reward: $" + order.getReward() + ")");
+
+                // Award points and money
+                money += order.getReward();
                 score += order.getReward();
+                ordersCompleted++;
+
+                int position = order.getPosisiOrder();
                 activeOrders.remove(order);
-                updateOrderPositions();
+
+                // Generate a new order in the same position
+                generateNewOrder(position);
+
                 return true;
             }
         }
-        System.out.println("Wrong Dish! Penalty applied.");
-        score -= 10;
-        return false;
+
+        // Dish doesn't match any order - still accept the plate but no score
+        System.out.println("OrderManager: Dish not on menu - plate accepted but no score awarded");
+        return false; // Return false to indicate no order was completed
     }
 
     // Getters
-    public List<Order> getActiveOrders() { return activeOrders; }
-    public int getScore() { return score; }
-    public int getLevelTimeRemaining() { return currentLevelTime; }
-    public int getLevelTimeLimit() { return levelTimeLimit; }
+    public List<Order> getActiveOrders() {
+        return new ArrayList<>(activeOrders);
+    }
+
+    public int getScore() {
+        return score;
+    }
+
+    public int getMoney() {
+        return money;
+    }
+
+    public int getOrdersCompleted() {
+        return ordersCompleted;
+    }
+
+    public int getMaxConcurrentOrders() {
+        return maxConcurrentOrders;
+    }
+
+    public int getOrdersFailed() {
+        return ordersFailed;
+    }
+
+    public boolean isGameOver() {
+        return gameOver;
+    }
+
+    public String getGameOverReason() {
+        return gameOverReason;
+    }
+
+    public int getMaxFailedOrders() {
+        return MAX_FAILED_ORDERS;
+    }
+
+    @BetterComments(description="Gets remaining stage time in seconds", type="method")
+    public int getStageRemainingTime() {
+        if (gameOver) return 0;
+        long elapsed = System.currentTimeMillis() - stageStartTime;
+        long remaining = stageTimeLimit - elapsed;
+        return Math.max(0, (int)(remaining / 1000));
+    }
+
+    @BetterComments(description="Gets stage time progress as percentage", type="method")
+    public float getStageProgressPercent() {
+        long elapsed = System.currentTimeMillis() - stageStartTime;
+        return Math.min(100f, (elapsed * 100f / stageTimeLimit));
+    }
+
+    @BetterComments(description="Gets total stage time limit in seconds", type="method")
+    public int getStageTimeLimit() {
+        return (int)(stageTimeLimit / 1000);
+    }
 }
+

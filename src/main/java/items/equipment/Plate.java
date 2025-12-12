@@ -7,7 +7,7 @@ public class Plate extends KitchenUtensil {
     private boolean isDirty;
 
     public Plate() {
-        super(); 
+        super();
         this.isDirty = false;
         loadImage();
     }
@@ -21,13 +21,18 @@ public class Plate extends KitchenUtensil {
 
     private void loadImage() {
         try {
-            String path = "/items/kitchenUtensils/plate.png";
+            String path;
+            if (isDirty) {
+                path = "/items/kitchenUtensils/dirtyPlate.png";
+            } else {
+                path = "/items/kitchenUtensils/plate.png";
+            }
             this.image = ImageIO.read(getClass().getResourceAsStream(path));
         } catch (IOException e) {
-            System.err.println("Failed to load image for Plate");
+            System.err.println("Failed to load image for Plate (dirty=" + isDirty + ")");
             e.printStackTrace();
         } catch (Exception e) {
-            System.err.println("Error loading image for Plate");
+            System.err.println("Error loading image for Plate (dirty=" + isDirty + ")");
             e.printStackTrace();
         }
     }
@@ -38,6 +43,7 @@ public class Plate extends KitchenUtensil {
 
     public void setIsDirty(boolean dirty) {
         this.isDirty = dirty;
+        loadImage(); // Reload image when dirty state changes
     }
 
     public void setIsDirty() {
@@ -47,11 +53,8 @@ public class Plate extends KitchenUtensil {
 
     @Override
     public void addContent(items.Preparable item) {
-        if (contents.isEmpty()) {
-            super.addContent(item);
-        } else {
-            System.out.println("Plate is full (capacity: 1 item)");
-        }
+        // Plates can hold multiple ingredients (no capacity limit)
+        super.addContent(item);
     }
 
     @Override

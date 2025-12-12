@@ -18,11 +18,7 @@ public class GameMaster {
     private StartMenu startMenu;
     private StageMenu stageMenu;
     private HowToPlayMenu howToPlayMenu;
-    
-    // [BARU] Atribut untuk Order & Stage System
     private OrderManager orderManager;
-    private int unlockedStages = 1; // Stage yang terbuka (default 1)
-    private int currentStagePlayed = 1;
 
     @BetterComments(description="Private constructor for Singleton pattern",type="constructor")
     private GameMaster(){
@@ -103,7 +99,9 @@ public void startGame(int stageNumber){
         
         frame.getContentPane().removeAll();
 
-        // Pastikan gamePanel baru dibuat bersih
+        // Initialize order manager
+        orderManager = new OrderManager();
+
         gamePanel = new GamePanel(this);
         frame.add(gamePanel);
 
@@ -176,13 +174,19 @@ public void startGame(int stageNumber){
         }
         return chefList.get(activeChefIndex);
     }
-    
-    // [BARU] Getter untuk sistem Stage & Order
+
     public OrderManager getOrderManager() {
         return orderManager;
     }
-    
-    public int getUnlockedStages() {
-        return unlockedStages;
+
+    @BetterComments(description="Get all chefs except the specified one for collision checking",type="method")
+    public List<Chef> getOtherChefs(Chef currentChef) {
+        List<Chef> otherChefs = new ArrayList<>();
+        for (Chef chef : chefList) {
+            if (chef != currentChef) {
+                otherChefs.add(chef);
+            }
+        }
+        return otherChefs;
     }
 }

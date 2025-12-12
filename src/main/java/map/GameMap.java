@@ -327,34 +327,69 @@ public class GameMap {
                     continue;
                 }
 
-                // Special case: Draw ingredients on AssemblyStation
+                // Special case: Draw ingredients/plates on AssemblyStation
                 if (station instanceof AssemblyStation) {
                     AssemblyStation assemblyStation = (AssemblyStation) station;
-                    java.util.List<items.food.Ingredient> ingredients = assemblyStation.getIngredients();
 
-                    if (!ingredients.isEmpty()) {
-                        int ingredientSize = gp.tileSize / 2;
-                        int spacing = 5; // Space between ingredients
+                    // Check if there's a plate on the assembly station
+                    if (assemblyStation.hasPlate()) {
+                        items.equipment.Plate plate = assemblyStation.getPlate();
 
-                        // Draw ingredients in a row or stacked
-                        for (int i = 0; i < ingredients.size() && i < 3; i++) { // Max 3 visible
-                            items.food.Ingredient ingredient = ingredients.get(i);
-                            if (ingredient.getImage() != null) {
-                                int offsetX = (i - 1) * spacing; // Slight horizontal offset
-                                int offsetY = i * spacing; // Slight vertical offset for stacking effect
-                                int screenX = x * gp.tileSize + (gp.tileSize - ingredientSize) / 2 + offsetX;
-                                int screenY = y * gp.tileSize + (gp.tileSize - ingredientSize) / 2 + offsetY;
-                                g2.drawImage(ingredient.getImage(), screenX, screenY, ingredientSize, ingredientSize, null);
+                        // Draw the plate
+                        if (plate.getImage() != null) {
+                            int plateSize = gp.tileSize / 2;
+                            int plateX = x * gp.tileSize + (gp.tileSize - plateSize) / 2;
+                            int plateY = y * gp.tileSize + (gp.tileSize - plateSize) / 2;
+                            g2.drawImage(plate.getImage(), plateX, plateY, plateSize, plateSize, null);
+
+                            // Draw items on the plate (if any)
+                            if (!plate.getContents().isEmpty()) {
+                                int itemSize = plateSize / 2;
+                                int itemX = plateX + (plateSize - itemSize) / 2;
+                                int itemY = plateY + (plateSize - itemSize) / 2 - 5; // Slightly above center
+
+                                for (items.Preparable content : plate.getContents()) {
+                                    if (content instanceof items.food.Dish) {
+                                        // Draw dish image (assembled dish)
+                                        items.food.Dish dish = (items.food.Dish) content;
+                                        if (dish.getImage() != null) {
+                                            g2.drawImage(dish.getImage(), itemX, itemY, itemSize, itemSize, null);
+                                        }
+                                    } else if (content instanceof items.food.Ingredient) {
+                                        // Draw ingredient image
+                                        items.food.Ingredient ingredient = (items.food.Ingredient) content;
+                                        if (ingredient.getImage() != null) {
+                                            g2.drawImage(ingredient.getImage(), itemX, itemY, itemSize, itemSize, null);
+                                        }
+                                    }
+                                }
                             }
                         }
-                    }
+                    } else {
+                        // No plate - check if there's a dish or ingredients on the station
+                        items.Item currentItem = assemblyStation.getCurrentItem();
 
-                    // If there's also an item on the tile (dish after assembly), draw it
-                    if (item != null && item.getImage() != null) {
-                        int itemSize = gp.tileSize / 2;
-                        int screenX = x * gp.tileSize + (gp.tileSize - itemSize) / 2;
-                        int screenY = y * gp.tileSize + (gp.tileSize - itemSize) / 2;
-                        g2.drawImage(item.getImage(), screenX, screenY, itemSize, itemSize, null);
+                        if (currentItem != null) {
+                            if (currentItem instanceof items.food.Dish) {
+                                // Draw the dish image (assembled dish)
+                                items.food.Dish dish = (items.food.Dish) currentItem;
+                                if (dish.getImage() != null) {
+                                    int dishSize = gp.tileSize / 2;
+                                    int screenX = x * gp.tileSize + (gp.tileSize - dishSize) / 2;
+                                    int screenY = y * gp.tileSize + (gp.tileSize - dishSize) / 2;
+                                    g2.drawImage(dish.getImage(), screenX, screenY, dishSize, dishSize, null);
+                                }
+                            } else if (currentItem instanceof items.food.Ingredient) {
+                                // Draw single ingredient
+                                items.food.Ingredient ingredient = (items.food.Ingredient) currentItem;
+                                if (ingredient.getImage() != null) {
+                                    int ingredientSize = gp.tileSize / 2;
+                                    int screenX = x * gp.tileSize + (gp.tileSize - ingredientSize) / 2;
+                                    int screenY = y * gp.tileSize + (gp.tileSize - ingredientSize) / 2;
+                                    g2.drawImage(ingredient.getImage(), screenX, screenY, ingredientSize, ingredientSize, null);
+                                }
+                            }
+                        }
                     }
 
                     continue; // Skip normal item rendering

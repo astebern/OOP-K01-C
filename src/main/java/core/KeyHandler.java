@@ -12,6 +12,7 @@ public class KeyHandler implements KeyListener{
     public boolean switchChef = false;
     public boolean interactPressed = false;
     public boolean pickUpDropPressed = false;
+    public boolean escPressed = false;
     private final Set<Integer> pressedKeys = new HashSet<>();
 
     @Override
@@ -22,6 +23,11 @@ public class KeyHandler implements KeyListener{
     @Override
     public void keyPressed(KeyEvent e) {
         int code = e.getKeyCode();
+
+        if (code == KeyEvent.VK_ESCAPE) {
+            escPressed = true;
+            return;
+        }
 
         if (code == KeyEvent.VK_TAB) {
             switchChef = true;

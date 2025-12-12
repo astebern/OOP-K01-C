@@ -50,9 +50,9 @@ public class Ingredient extends Item implements Preparable {
                     }
                     break;
                 case COOKED:
-                    // Pasta doesn't have cooked image, use raw
                     if (nameLower.equals("pasta")) {
-                        stateStr = "raw";
+                        // Pasta cooked state uses special "pasta.png" image
+                        stateStr = "cooked";
                     } else {
                         stateStr = "cooked";
                     }
