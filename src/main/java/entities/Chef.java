@@ -4,6 +4,7 @@ import core.GamePanel;
 import core.KeyHandler;
 import items.Item;
 import map.GameMap;
+import stations.CuttingStation;
 import stations.Station;
 import utils.Actions;
 import utils.BetterComments;
@@ -31,6 +32,11 @@ public class Chef {
     public BufferedImage up1,up2,down1,down2,left1,left2,left3,right1,right2,right3;
     private int spriteCounter = 0;
     private int spriteNum = 1;
+
+    // Station interaction tracking
+    private Station activeStation = null;
+    private int activeStationX = -1;
+    private int activeStationY = -1;
 
     @BetterComments(description = "Initializes a chef character at the given position",type="constructor")
     public Chef(GamePanel gp, KeyHandler keyH, GameMap gameMap, int x, int y) {
@@ -82,6 +88,14 @@ public class Chef {
         }
 
         if (keyH.directionNow != null && keyH.directionNow != Direction.NONE) {
+            // Pause any active station when chef starts moving
+            if (activeStation != null && activeStation.isInProgress()) {
+                activeStation.pause();
+                System.out.println(id + " moved away, pausing station");
+                // Reset chef state when moving away
+                this.state = true;
+                this.currentActions = Actions.IDLE;
+            }
             int nextX = this.position.getX();
             int nextY = this.position.getY();
 
@@ -287,16 +301,58 @@ public class Chef {
         Station station = gameMap.getStationAt(targetX, targetY);
 
         if (station != null) {
-            this.currentActions = Actions.USINGSTATION;
-            this.state = false;
             System.out.println(id + " is interacting with " + station.getClass().getSimpleName() +
                              " at (" + targetX + ", " + targetY + ")");
 
-            // TODO:Implement stuff per station
-            // nanti gw buat MALAS SKRG
-            // After using station
-            this.state = true;
-            this.currentActions = Actions.IDLE;
+            // Handle CuttingStation
+            if (station instanceof CuttingStation) {
+                CuttingStation cuttingStation = (CuttingStation) station;
+                Item itemOnStation = gameMap.getItemAt(targetX, targetY);
+
+                if (itemOnStation != null && cuttingStation.hasChoppableIngredient(itemOnStation)) {
+                    // Set chef to busy state
+                    this.currentActions = Actions.USINGSTATION;
+                    this.state = false;
+
+                    // Track this station as active
+                    this.activeStation = cuttingStation;
+                    this.activeStationX = targetX;
+                    this.activeStationY = targetY;
+
+                    // Start or resume cutting
+                    boolean started = cuttingStation.startCutting(itemOnStation, () -> {
+                        // On completion callback
+                        this.state = true;
+                        this.currentActions = Actions.IDLE;
+                        this.activeStation = null;
+                        this.activeStationX = -1;
+                        this.activeStationY = -1;
+                        System.out.println(id + " finished cutting");
+                    });
+
+                    if (!started) {
+                        // Failed to start, reset chef state
+                        this.state = true;
+                        this.currentActions = Actions.IDLE;
+                        this.activeStation = null;
+                        this.activeStationX = -1;
+                        this.activeStationY = -1;
+                    }
+                } else if (itemOnStation == null) {
+                    System.out.println(id + " - No item on cutting station to cut");
+                } else {
+                    System.out.println(id + " - Item on station cannot be chopped");
+                }
+            }
+            // TODO: Add other station types here (CookingStation, etc.)
+            else {
+                // Default behavior for other stations
+                this.currentActions = Actions.USINGSTATION;
+                this.state = false;
+                // After using station
+                this.state = true;
+                this.currentActions = Actions.IDLE;
+            }
         } else {
             System.out.println(id + " - no station to interact with");
         }

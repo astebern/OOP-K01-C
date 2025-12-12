@@ -333,6 +333,42 @@ public class GameMap {
                 }
             }
         }
+
+        // Draw progress bars for stations that are in progress
+        for (int y = 0; y < MAP_HEIGHT; y++) {
+            for (int x = 0; x < MAP_WIDTH; x++) {
+                Station station = getStationAt(x, y);
+                if (station != null && station.isInProgress()) {
+                    float progress = station.getProgressPercent();
+
+                    // Progress bar dimensions
+                    int barWidth = gp.tileSize - 20;
+                    int barHeight = 8;
+                    int screenX = x * gp.tileSize + 10;
+                    int screenY = y * gp.tileSize + gp.tileSize - 15;
+
+                    // Draw background (dark gray)
+                    g2.setColor(new Color(50, 50, 50, 200));
+                    g2.fillRect(screenX, screenY, barWidth, barHeight);
+
+                    // Draw progress (green)
+                    g2.setColor(new Color(50, 200, 50, 220));
+                    int fillWidth = (int) ((barWidth * progress) / 100.0f);
+                    g2.fillRect(screenX, screenY, fillWidth, barHeight);
+
+                    // Draw border (white)
+                    g2.setColor(Color.WHITE);
+                    g2.drawRect(screenX, screenY, barWidth, barHeight);
+
+                    // Draw percentage text
+                    g2.setFont(new Font("Arial", Font.BOLD, 10));
+                    String progressText = String.format("%.0f%%", progress);
+                    int textWidth = g2.getFontMetrics().stringWidth(progressText);
+                    g2.setColor(Color.WHITE);
+                    g2.drawString(progressText, screenX + (barWidth - textWidth) / 2, screenY - 2);
+                }
+            }
+        }
     }
 
     @BetterComments(description = "returns whether that location is blocked by a collidable tile or out-of-bounds." ,type="method")
