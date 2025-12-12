@@ -19,6 +19,7 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.util.List;
 
 public class Chef {
     private static int chef_num=1;
@@ -92,6 +93,23 @@ public class Chef {
         }
 
         if (keyH.directionNow != null && keyH.directionNow != Direction.NONE) {
+            // Check if chef is busy (cannot move)
+            if (!this.state) {
+                // Chef is busy - cannot move
+                // If there's an active station, stop it
+                if (activeStation != null && activeStation.isInProgress()) {
+                    activeStation.pause();
+                    System.out.println(id + " tried to move while busy - station progress reset!");
+                    // Reset chef state
+                    this.state = true;
+                    this.currentActions = Actions.IDLE;
+                    this.activeStation = null;
+                    this.activeStationX = -1;
+                    this.activeStationY = -1;
+                }
+                return; // Don't allow movement
+            }
+
             // Pause any active station when chef starts moving
             if (activeStation != null && activeStation.isInProgress()) {
                 activeStation.pause();
@@ -124,7 +142,7 @@ public class Chef {
             int solidAreaSize = gp.tileSize - 20;
             int solidAreaOffset = 10;
 
-
+            // Check collision with tiles
             if (gameMap.checkCollision(nextX + solidAreaOffset, nextY + solidAreaOffset) ||
                 gameMap.checkCollision(nextX + solidAreaOffset + solidAreaSize, nextY + solidAreaOffset) ||
                 gameMap.checkCollision(nextX + solidAreaOffset, nextY + solidAreaOffset + solidAreaSize) ||
@@ -132,6 +150,10 @@ public class Chef {
                 collision = true;
             }
 
+            // Check collision with other chefs
+            if (!collision && checkChefCollision(nextX, nextY)) {
+                collision = true;
+            }
 
             if (!collision) {
                 this.position.setX(nextX);
@@ -187,19 +209,28 @@ public class Chef {
             int itemY = this.position.getY() - itemSize / 2;
             g2.drawImage(inventory.getImage(), itemX, itemY, itemSize, itemSize, null);
 
-            // If inventory is a plate with contents, draw the ingredient on top
+            // If inventory is a plate with item, draw the item on top
             if (inventory instanceof items.equipment.Plate) {
                 items.equipment.Plate plate = (items.equipment.Plate) inventory;
                 if (!plate.getContents().isEmpty()) {
                     items.Preparable content = plate.getContents().get(0);
-                    if (content instanceof Item) {
-                        Item ingredientItem = (Item) content;
-                        if (ingredientItem.getImage() != null) {
-                            // Draw ingredient on top of plate (smaller)
+                    if (content instanceof items.food.Dish) {
+                        // Draw dish image (assembled dish)
+                        items.food.Dish dish = (items.food.Dish) content;
+                        if (dish.getImage() != null) {
+                            int dishSize = gp.tileSize / 3;
+                            int dishX = this.position.getX() + (gp.tileSize - dishSize) / 2;
+                            int dishY = this.position.getY() - itemSize / 2 - 3; // Slightly above plate
+                            g2.drawImage(dish.getImage(), dishX, dishY, dishSize, dishSize, null);
+                        }
+                    } else if (content instanceof items.food.Ingredient) {
+                        // Draw ingredient image
+                        items.food.Ingredient ingredient = (items.food.Ingredient) content;
+                        if (ingredient.getImage() != null) {
                             int ingredientSize = gp.tileSize / 3;
                             int ingredientX = this.position.getX() + (gp.tileSize - ingredientSize) / 2;
                             int ingredientY = this.position.getY() - itemSize / 2 - 3; // Slightly above plate
-                            g2.drawImage(ingredientItem.getImage(), ingredientX, ingredientY, ingredientSize, ingredientSize, null);
+                            g2.drawImage(ingredient.getImage(), ingredientX, ingredientY, ingredientSize, ingredientSize, null);
                         }
                     }
                 }
@@ -254,6 +285,32 @@ public class Chef {
                     }
                 } else {
                     System.out.println(id + " - PlateStorage is empty");
+                    return;
+                }
+            }
+
+            // Check if picking up from AssemblyStation
+            if (stationAtTile instanceof AssemblyStation) {
+                AssemblyStation assemblyStation = (AssemblyStation) stationAtTile;
+
+                // Try to pick up plate first (if there's one on the station)
+                if (assemblyStation.hasPlate()) {
+                    items.equipment.Plate plate = assemblyStation.removePlate();
+                    this.inventory = plate;
+                    this.currentActions = Actions.PICKINGUP;
+                    this.state = true;
+                    System.out.println(id + " picked up plate from AssemblyStation");
+                    return;
+                } else if (assemblyStation.getCurrentItem() != null) {
+                    // Pick up loose item (ingredient or dish)
+                    Item item = assemblyStation.removeCurrentItem();
+                    this.inventory = item;
+                    this.currentActions = Actions.PICKINGUP;
+                    this.state = true;
+                    System.out.println(id + " picked up item from AssemblyStation");
+                    return;
+                } else {
+                    System.out.println(id + " - AssemblyStation is empty");
                     return;
                 }
             }
@@ -391,33 +448,126 @@ public class Chef {
                 }
             }
 
+            // Check if dropping on a ServingCounter
+            if (stationAtTile instanceof stations.ServingCounter) {
+                // Only allow plates with contents (dishes) to be served
+                if (this.inventory instanceof items.equipment.Plate) {
+                    items.equipment.Plate plate = (items.equipment.Plate) this.inventory;
+
+                    if (!plate.getContents().isEmpty()) {
+                        // Get the first item from plate contents
+                        items.Preparable content = plate.getContents().get(0);
+
+                        // Only dishes can be served
+                        if (content instanceof items.food.Dish) {
+                            items.food.Dish dish = (items.food.Dish) content;
+
+                            // Get the OrderManager from GameMaster
+                            core.OrderManager orderManager = gp.getGameMaster().getOrderManager();
+                            if (orderManager != null) {
+                                boolean orderCompleted = orderManager.checkAndCompleteOrder(dish);
+
+                                if (orderCompleted) {
+                                    System.out.println(id + " - Order completed successfully!");
+
+                                    // Remove plate from chef's inventory IMMEDIATELY
+                                    this.inventory = null;
+                                    this.currentActions = Actions.DROPPINGDOWN;
+                                    this.state = true;
+
+                                    // Schedule a NEW dirty plate to appear in PlateStorage after 10 seconds
+                                    new Thread(() -> {
+                                        try {
+                                            Thread.sleep(10000); // 10 seconds
+
+                                            // Create a new dirty plate
+                                            items.equipment.Plate dirtyPlate = new items.equipment.Plate();
+                                            dirtyPlate.setIsDirty(true);
+
+                                            // Find nearest PlateStorage and add the dirty plate
+                                            PlateStorage nearestStorage = findNearestPlateStorage();
+                                            if (nearestStorage != null) {
+                                                nearestStorage.storePlate(dirtyPlate);
+                                                System.out.println("Dirty plate automatically appeared in PlateStorage after 10 seconds (order completed)");
+                                            }
+                                        } catch (InterruptedException e) {
+                                            e.printStackTrace();
+                                        }
+                                    }).start();
+
+                                } else {
+                                    System.out.println(id + " - Dish not on menu - plate will return dirty to storage in 10 seconds");
+
+                                    // Remove plate from chef's inventory IMMEDIATELY
+                                    this.inventory = null;
+                                    this.currentActions = Actions.DROPPINGDOWN;
+                                    this.state = true;
+
+                                    // Schedule a NEW dirty plate to appear in PlateStorage after 10 seconds
+                                    new Thread(() -> {
+                                        try {
+                                            Thread.sleep(10000); // 10 seconds
+
+                                            // Create a new dirty plate
+                                            items.equipment.Plate dirtyPlate = new items.equipment.Plate();
+                                            dirtyPlate.setIsDirty(true);
+
+                                            // Find nearest PlateStorage and add the dirty plate
+                                            PlateStorage nearestStorage = findNearestPlateStorage();
+                                            if (nearestStorage != null) {
+                                                nearestStorage.storePlate(dirtyPlate);
+                                                System.out.println("Dirty plate automatically appeared in PlateStorage after 10 seconds (wrong dish)");
+                                            }
+                                        } catch (InterruptedException e) {
+                                            e.printStackTrace();
+                                        }
+                                    }).start();
+                                }
+                                return;
+                            }
+                        } else {
+                            System.out.println(id + " - Can only serve dishes, not raw ingredients!");
+                        }
+                    } else {
+                        System.out.println(id + " - Cannot serve empty plate!");
+                        return;
+                    }
+                } else {
+                    System.out.println(id + " - ServingCounter only accepts plates with food!");
+                    return;
+                }
+            }
+
             Item existingItem = gameMap.getItemAt(targetX, targetY);
 
             // Special case: If tile has a plate, try to add ingredient onto it
             if (existingItem instanceof items.equipment.Plate) {
                 items.equipment.Plate plate = (items.equipment.Plate) existingItem;
                 
-                // Check if inventory is a preparable item (ingredient)
+                // Check if plate already has contents
+                if (!plate.getContents().isEmpty()) {
+                    System.out.println(id + " - Plate already has items on it");
+                    return;
+                }
+
+                // Plate can hold Preparable items (Ingredient, etc.)
                 if (this.inventory instanceof items.Preparable) {
-                    items.Preparable preparable = (items.Preparable) this.inventory;
-                    
-                    // Check if plate is full (capacity: 1)
-                    if (!plate.getContents().isEmpty()) {
-                        System.out.println(id + " - Plate is full (capacity: 1 item)");
-                        return;
+                    items.Preparable preparableToAdd = (items.Preparable) this.inventory;
+
+                    // Add the item to the plate
+                    plate.addContent(preparableToAdd);
+
+                    String itemName = this.inventory.getClass().getSimpleName();
+                    if (this.inventory instanceof items.food.Ingredient) {
+                        itemName = ((items.food.Ingredient)this.inventory).getName();
+                    } else if (this.inventory instanceof items.food.Dish) {
+                        itemName = ((items.food.Dish)this.inventory).getName();
                     }
-                    
-                    // Add ingredient to plate
-                    plate.addContent(preparable);
-                    System.out.println(id + " added " +
-                                     ((items.food.Ingredient)preparable).getName() +
-                                     " to plate");
+
+                    System.out.println(id + " added " + itemName + " to plate");
                     this.inventory = null;
                     this.currentActions = Actions.DROPPINGDOWN;
                     this.state = true;
-                    return;
-                } else {
-                    System.out.println(id + " - Can only add ingredients to plates");
                     return;
                 }
             }
@@ -454,23 +604,87 @@ public class Chef {
             }
             // Normal drop - tile is empty
             else if (existingItem == null) {
-                // Special handling for AssemblyStation - ingredients go into the station, not on the tile
+                // Special handling for AssemblyStation - accepts ingredients, dishes, and plates
                 if (stationAtTile instanceof AssemblyStation) {
-                    if (this.inventory instanceof items.food.Ingredient) {
-                        AssemblyStation assemblyStation = (AssemblyStation) stationAtTile;
+                    AssemblyStation assemblyStation = (AssemblyStation) stationAtTile;
+
+                    if (this.inventory instanceof items.equipment.Plate) {
+                        // Dropping a plate on AssemblyStation
+                        items.equipment.Plate plate = (items.equipment.Plate) this.inventory;
+                        boolean success = assemblyStation.addPlate(plate);
+
+                        if (success) {
+                            this.inventory = null;
+                            this.currentActions = Actions.DROPPINGDOWN;
+                            this.state = true;
+                            System.out.println(id + " - Placed plate on AssemblyStation");
+                        } else {
+                            System.out.println(id + " - Cannot place plate - AssemblyStation already has an item");
+                        }
+                    } else if (this.inventory instanceof items.food.Ingredient) {
+                        // Dropping an ingredient on AssemblyStation
                         items.food.Ingredient ingredient = (items.food.Ingredient) this.inventory;
+                        items.food.Dish result = assemblyStation.addIngredient(ingredient, gameMap, targetX, targetY);
 
-                        items.food.Dish dish = assemblyStation.addIngredient(ingredient, gameMap, targetX, targetY);
+                        if (result != null) {
+                            // Check if this is a signal that ingredient was placed on plate
+                            if (result.getName().equals("__INGREDIENT_ON_PLATE__")) {
+                                // Ingredient was placed on plate - stays on station, clear chef's inventory
+                                this.inventory = null;
+                                this.currentActions = Actions.DROPPINGDOWN;
+                                this.state = true;
+                                System.out.println(id + " - Ingredient placed on plate (stays on station)");
+                            } else if (result.getName().equals("__DISH_PLACED__")) {
+                                // Ingredient was placed on station (not on plate) - clear inventory
+                                this.inventory = null;
+                                this.currentActions = Actions.DROPPINGDOWN;
+                                this.state = true;
+                                System.out.println(id + " - Ingredient placed on AssemblyStation");
+                            } else {
+                                // A complete dish was assembled! Keep in inventory
+                                this.inventory = result;
+                                this.currentActions = Actions.DROPPINGDOWN;
+                                this.state = true;
+                                System.out.println(id + " - " + result.getName() + " was assembled!");
+                            }
+                        } else {
+                            // Ingredient was rejected - keep it in chef's inventory
+                            System.out.println(id + " - Ingredient cannot be added (doesn't form valid recipe)");
+                            // Don't clear inventory, don't set DROPPINGDOWN
+                        }
+                    } else if (this.inventory instanceof items.food.Dish) {
+                        // Dropping a dish on AssemblyStation (for combining)
+                        items.food.Dish dish = (items.food.Dish) this.inventory;
+                        items.food.Dish result = assemblyStation.addDish(dish, gameMap, targetX, targetY);
 
-                        this.inventory = null;
-                        this.currentActions = Actions.DROPPINGDOWN;
-                        this.state = true;
-
-                        if (dish != null) {
-                            System.out.println(id + " - " + dish.getName() + " was assembled!");
+                        if (result != null) {
+                            // Check if this is a signal that dish was placed on plate
+                            if (result.getName().equals("__DISH_ON_PLATE__")) {
+                                // Dish was placed on plate - stays on station, clear chef's inventory
+                                this.inventory = null;
+                                this.currentActions = Actions.DROPPINGDOWN;
+                                this.state = true;
+                                System.out.println(id + " - Dish placed on plate (stays on station)");
+                            } else if (result.getName().equals("__DISH_PLACED__")) {
+                                // Dish was placed on station (not on plate) - clear inventory
+                                this.inventory = null;
+                                this.currentActions = Actions.DROPPINGDOWN;
+                                this.state = true;
+                                System.out.println(id + " - Dish placed on AssemblyStation");
+                            } else {
+                                // A complete dish was assembled! Keep in inventory
+                                this.inventory = result;
+                                this.currentActions = Actions.DROPPINGDOWN;
+                                this.state = true;
+                                System.out.println(id + " - " + result.getName() + " was assembled!");
+                            }
+                        } else {
+                            // Dish was rejected - keep it in chef's inventory
+                            System.out.println(id + " - Dish cannot be added (doesn't form valid recipe)");
+                            // Don't clear inventory, don't set DROPPINGDOWN
                         }
                     } else {
-                        System.out.println(id + " - AssemblyStation only accepts ingredients");
+                        System.out.println(id + " - AssemblyStation only accepts ingredients, dishes, and plates");
                     }
                 } else {
                     // Normal drop on other tiles
@@ -578,6 +792,50 @@ public class Chef {
                     System.out.println(id + " - No item on cutting station to cut");
                 } else {
                     System.out.println(id + " - Item on station cannot be chopped");
+                }
+            }
+            // Handle WashingStation
+            else if (station instanceof stations.WashingStation) {
+                stations.WashingStation washingStation = (stations.WashingStation) station;
+
+                // Check if chef is holding a dirty plate
+                if (this.inventory instanceof items.equipment.Plate) {
+                    items.equipment.Plate plate = (items.equipment.Plate) this.inventory;
+
+                    if (plate.getIsDirty()) {
+                        // Set chef to busy state
+                        this.currentActions = Actions.USINGSTATION;
+                        this.state = false;
+
+                        // Track this station as active
+                        this.activeStation = washingStation;
+                        this.activeStationX = targetX;
+                        this.activeStationY = targetY;
+
+                        // Start washing
+                        boolean started = washingStation.startWashing(plate, () -> {
+                            // On completion callback
+                            this.state = true;
+                            this.currentActions = Actions.IDLE;
+                            this.activeStation = null;
+                            this.activeStationX = -1;
+                            this.activeStationY = -1;
+                            System.out.println(id + " finished washing plate - plate is now clean!");
+                        });
+
+                        if (!started) {
+                            // Failed to start, reset chef state
+                            this.state = true;
+                            this.currentActions = Actions.IDLE;
+                            this.activeStation = null;
+                            this.activeStationX = -1;
+                            this.activeStationY = -1;
+                        }
+                    } else {
+                        System.out.println(id + " - Plate is already clean");
+                    }
+                } else {
+                    System.out.println(id + " - Must hold a dirty plate to use washing station");
                 }
             }
             // Handle CookingStation
@@ -793,5 +1051,60 @@ public class Chef {
         this.spriteNum = spriteNum;
     }
 
-}
+    @BetterComments(description = "Checks if the chef at the given position would collide with any other chef", type="method")
+    private boolean checkChefCollision(int nextX, int nextY) {
+        // Get the collision box for this chef at the next position
+        int solidAreaSize = gp.tileSize - 20;
+        int solidAreaOffset = 10;
 
+        int thisLeft = nextX + solidAreaOffset;
+        int thisRight = nextX + solidAreaOffset + solidAreaSize;
+        int thisTop = nextY + solidAreaOffset;
+        int thisBottom = nextY + solidAreaOffset + solidAreaSize;
+
+        // Check collision with all other chefs
+        List<Chef> otherChefs = gp.getGameMaster().getOtherChefs(this);
+
+        for (Chef otherChef : otherChefs) {
+            int otherX = otherChef.getPosition().getX();
+            int otherY = otherChef.getPosition().getY();
+
+            int otherLeft = otherX + solidAreaOffset;
+            int otherRight = otherX + solidAreaOffset + solidAreaSize;
+            int otherTop = otherY + solidAreaOffset;
+            int otherBottom = otherY + solidAreaOffset + solidAreaSize;
+
+            // Check if rectangles overlap (AABB collision detection)
+            if (thisLeft < otherRight && thisRight > otherLeft &&
+                thisTop < otherBottom && thisBottom > otherTop) {
+                return true; // Collision detected
+            }
+        }
+
+        return false; // No collision
+    }
+
+    @BetterComments(description = "Finds the nearest PlateStorage station on the map", type="method")
+    private PlateStorage findNearestPlateStorage() {
+        PlateStorage nearestStorage = null;
+        double minDistance = Double.MAX_VALUE;
+
+        for (int y = 0; y < gameMap.getMapHeight(); y++) {
+            for (int x = 0; x < gameMap.getMapWidth(); x++) {
+                Station station = gameMap.getStationAt(x, y);
+                if (station instanceof PlateStorage) {
+                    double distance = Math.sqrt(
+                        Math.pow(getTileX() - x, 2) +
+                        Math.pow(getTileY() - y, 2)
+                    );
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        nearestStorage = (PlateStorage) station;
+                    }
+                }
+            }
+        }
+
+        return nearestStorage;
+    }
+}

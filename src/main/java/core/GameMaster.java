@@ -18,6 +18,7 @@ public class GameMaster {
     private StartMenu startMenu;
     private StageMenu stageMenu;
     private HowToPlayMenu howToPlayMenu;
+    private OrderManager orderManager;
 
     @BetterComments(description="Private constructor for Singleton pattern",type="constructor")
     private GameMaster(){
@@ -93,6 +94,9 @@ public class GameMaster {
     public void startGame(){
         frame.getContentPane().removeAll();
 
+        // Initialize order manager
+        orderManager = new OrderManager();
+
         gamePanel = new GamePanel(this);
         frame.add(gamePanel);
 
@@ -137,9 +141,18 @@ public class GameMaster {
         return chefList.get(activeChefIndex);
     }
 
+    public OrderManager getOrderManager() {
+        return orderManager;
+    }
 
-
-
-
+    @BetterComments(description="Get all chefs except the specified one for collision checking",type="method")
+    public List<Chef> getOtherChefs(Chef currentChef) {
+        List<Chef> otherChefs = new ArrayList<>();
+        for (Chef chef : chefList) {
+            if (chef != currentChef) {
+                otherChefs.add(chef);
+            }
+        }
+        return otherChefs;
+    }
 }
-
