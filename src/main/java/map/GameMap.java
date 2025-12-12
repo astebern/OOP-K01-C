@@ -334,11 +334,11 @@ public class GameMap {
             }
         }
 
-        // Draw progress bars for stations that are in progress
+        // Draw progress bars for stations that are in progress and should show progress
         for (int y = 0; y < MAP_HEIGHT; y++) {
             for (int x = 0; x < MAP_WIDTH; x++) {
                 Station station = getStationAt(x, y);
-                if (station != null && station.isInProgress()) {
+                if (station != null && station.isInProgress() && station.shouldShowProgressBar()) {
                     float progress = station.getProgressPercent();
 
                     // Progress bar dimensions

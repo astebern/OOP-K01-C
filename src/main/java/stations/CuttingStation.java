@@ -25,12 +25,6 @@ public class CuttingStation extends Station {
         }
 
         Ingredient ingredient = (Ingredient) item;
-
-        if (!(item instanceof Preparable)) {
-            System.out.println("CuttingStation: Item cannot be prepared");
-            return false;
-        }
-
         Preparable preparable = (Preparable) item;
 
         if (!preparable.canBeChopped()) {
@@ -49,6 +43,7 @@ public class CuttingStation extends Station {
         // Start new cutting process
         System.out.println("CuttingStation: Starting to cut " + ingredient.getName());
         isInProgress = true;
+        showProgressBar = true; // Show progress bar when starting
         startTime = System.currentTimeMillis();
         pausedTime = 0;
         lastPauseTime = 0;
@@ -123,7 +118,7 @@ public class CuttingStation extends Station {
      * Checks if there's an ingredient on this station that can be chopped.
      */
     public boolean hasChoppableIngredient(Item item) {
-        if (item instanceof Ingredient && item instanceof Preparable) {
+        if (item instanceof Ingredient) {
             return ((Preparable) item).canBeChopped();
         }
         return false;

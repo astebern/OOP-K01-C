@@ -3,6 +3,7 @@ package stations;
 public class Station {
     protected float progressPercent = 0.0f; // 0.0 to 100.0
     protected boolean isInProgress = false;
+    protected boolean showProgressBar = false; // Controls visibility of progress bar
     protected long startTime = 0;
     protected long pausedTime = 0; // Total time spent paused
     protected long lastPauseTime = 0;
@@ -23,9 +24,18 @@ public class Station {
         this.isInProgress = inProgress;
     }
 
+    public boolean shouldShowProgressBar() {
+        return showProgressBar;
+    }
+
+    public void setShowProgressBar(boolean show) {
+        this.showProgressBar = show;
+    }
+
     public void resetProgress() {
         this.progressPercent = 0.0f;
         this.isInProgress = false;
+        this.showProgressBar = false;
         this.startTime = 0;
         this.pausedTime = 0;
         this.lastPauseTime = 0;
@@ -42,6 +52,7 @@ public class Station {
     public void pause() {
         if (isInProgress && lastPauseTime == 0) {
             lastPauseTime = System.currentTimeMillis();
+            showProgressBar = false; // Hide progress bar when paused
         }
     }
 
@@ -49,6 +60,7 @@ public class Station {
         if (lastPauseTime > 0) {
             pausedTime += System.currentTimeMillis() - lastPauseTime;
             lastPauseTime = 0;
+            showProgressBar = true; // Show progress bar when resumed
         }
     }
 

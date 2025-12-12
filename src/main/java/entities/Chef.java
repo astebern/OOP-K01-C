@@ -4,6 +4,7 @@ import core.GamePanel;
 import core.KeyHandler;
 import items.Item;
 import map.GameMap;
+import stations.CookingStation;
 import stations.CuttingStation;
 import stations.Station;
 import utils.Actions;
@@ -222,11 +223,58 @@ public class Chef {
 
             Item item = gameMap.getItemAt(targetX, targetY);
             if (item != null) {
+                // Special case: If item is a cooking utensil with contents, pick up the ingredient inside
+                if (item instanceof items.equipment.KitchenUtensil) {
+                    items.equipment.KitchenUtensil utensil = (items.equipment.KitchenUtensil) item;
+
+                    if (!utensil.getContents().isEmpty()) {
+                        // Pick up ingredient from inside the utensil
+                        items.Preparable ingredientInside = utensil.getContents().get(0);
+
+                        // Stop cooking if it's on a cooking station
+                        Station stationAtTile = gameMap.getStationAt(targetX, targetY);
+                        if (stationAtTile instanceof CookingStation && stationAtTile.isInProgress()) {
+                            ((CookingStation) stationAtTile).stopCooking();
+                            System.out.println(id + " picked up item from utensil - cooking stopped");
+                        }
+
+                        utensil.getContents().remove(ingredientInside);
+                        utensil.updateCookingImage(); // Reset to default utensil image
+                        this.inventory = (Item) ingredientInside;
+                        this.currentActions = Actions.PICKINGUP;
+                        this.state = true;
+                        System.out.println(id + " picked up " +
+                                         ((items.food.Ingredient)ingredientInside).getName() +
+                                         " from " + item.getClass().getSimpleName());
+                        return;
+                    } else {
+                        System.out.println(id + " - " + item.getClass().getSimpleName() + " is empty");
+                        return;
+                    }
+                }
+
+                // Normal item pickup
                 // Check if item is portable
                 if (!item.isPortable()) {
                     System.out.println(id + " cannot pick up " + item.getClass().getSimpleName() +
                                      " - item is not portable");
                     return;
+                }
+
+                // Check if picking up from a station with progress (like CuttingStation)
+                Station stationAtTile = gameMap.getStationAt(targetX, targetY);
+                if (stationAtTile != null) {
+                    // Stop station processes
+                    if (stationAtTile instanceof CuttingStation && stationAtTile.isInProgress()) {
+                        ((CuttingStation) stationAtTile).stopCutting();
+                        System.out.println(id + " picked up item from station - cutting progress reset");
+                    }
+                    // Clear active station tracking if this was the active station
+                    if (activeStation == stationAtTile) {
+                        activeStation = null;
+                        activeStationX = -1;
+                        activeStationY = -1;
+                    }
                 }
 
                 this.inventory = gameMap.removeItemAt(targetX, targetY);
@@ -240,7 +288,39 @@ public class Chef {
         } else {
             // DROPPING - can drop anywhere the indicator shows (within bounds)
             Item existingItem = gameMap.getItemAt(targetX, targetY);
-            if (existingItem == null) {
+
+            // Special case: If tile has a cooking utensil, try to add ingredient into it
+            if (existingItem != null && existingItem instanceof items.equipment.CookingDevice) {
+                items.equipment.CookingDevice device = (items.equipment.CookingDevice) existingItem;
+                items.equipment.KitchenUtensil utensil = (items.equipment.KitchenUtensil) existingItem;
+
+                // Check if inventory is a preparable item
+                if (this.inventory instanceof items.Preparable) {
+                    items.Preparable preparable = (items.Preparable) this.inventory;
+
+                    // Check if utensil is full
+                    if (!utensil.getContents().isEmpty()) {
+                        System.out.println(id + " - " + existingItem.getClass().getSimpleName() +
+                                         " is already full (capacity: 1)");
+                    } else if (device.canAccept(preparable)) {
+                        // Add ingredient to utensil
+                        device.addIngredient(preparable);
+                        System.out.println(id + " added " +
+                                         ((items.food.Ingredient)preparable).getName() +
+                                         " to " + existingItem.getClass().getSimpleName());
+                        this.inventory = null;
+                        this.currentActions = Actions.DROPPINGDOWN;
+                        this.state = true;
+                    } else {
+                        System.out.println(id + " - " + existingItem.getClass().getSimpleName() +
+                                         " cannot accept this ingredient");
+                    }
+                } else {
+                    System.out.println(id + " - Cannot add this item to cooking utensil");
+                }
+            }
+            // Normal drop - tile is empty
+            else if (existingItem == null) {
                 boolean success = gameMap.placeItemAt(targetX, targetY, this.inventory);
                 if (success) {
                     System.out.println(id + " dropped " + this.inventory.getClass().getSimpleName() +
@@ -251,7 +331,9 @@ public class Chef {
                 } else {
                     System.out.println(id + " failed to drop item");
                 }
-            } else {
+            }
+            // Tile has non-utensil item
+            else {
                 System.out.println(id + " cannot drop - tile already has an item");
             }
         }
@@ -344,7 +426,89 @@ public class Chef {
                     System.out.println(id + " - Item on station cannot be chopped");
                 }
             }
-            // TODO: Add other station types here (CookingStation, etc.)
+            // Handle CookingStation
+            else if (station instanceof CookingStation) {
+                CookingStation cookingStation = (CookingStation) station;
+                Item itemOnStation = gameMap.getItemAt(targetX, targetY);
+
+                // Case 1: Chef has ingredient in inventory, and there's a utensil on station
+                if (this.inventory != null && itemOnStation != null &&
+                    itemOnStation instanceof items.equipment.CookingDevice) {
+
+                    items.equipment.KitchenUtensil utensil = (items.equipment.KitchenUtensil) itemOnStation;
+
+                    // Try to add ingredient to utensil
+                    if (this.inventory instanceof items.Preparable) {
+                        items.Preparable preparable = (items.Preparable) this.inventory;
+
+                        if (utensil.getContents().size() >= 1) {
+                            System.out.println(id + " - " + itemOnStation.getClass().getSimpleName() +
+                                             " is already full (capacity: 1)");
+                        } else {
+                            items.equipment.CookingDevice device = (items.equipment.CookingDevice) itemOnStation;
+
+                            if (device.canAccept(preparable)) {
+                                device.addIngredient(preparable);
+                                System.out.println(id + " added " +
+                                                 ((items.food.Ingredient)preparable).getName() +
+                                                 " to " + itemOnStation.getClass().getSimpleName());
+                                this.inventory = null; // Remove from chef's inventory
+                                this.currentActions = Actions.IDLE;
+                                this.state = true;
+                            } else {
+                                System.out.println(id + " - " + itemOnStation.getClass().getSimpleName() +
+                                                 " cannot accept this ingredient");
+                            }
+                        }
+                    } else {
+                        System.out.println(id + " - Cannot add this item to cooking utensil");
+                    }
+                }
+                // Case 2: No ingredient in hand, utensil has ingredient - start cooking
+                else if (this.inventory == null && itemOnStation instanceof items.equipment.CookingDevice) {
+                    // Check if utensil has cookable content
+                    items.equipment.KitchenUtensil utensil = (items.equipment.KitchenUtensil) itemOnStation;
+                    if (!utensil.getContents().isEmpty() &&
+                        utensil.getContents().get(0) instanceof items.Preparable) {
+
+                        items.Preparable prep = utensil.getContents().get(0);
+                        if (prep.canBeCooked()) {
+                            // Suppress false positive from IntelliJ - this compiles fine in Maven
+                            @SuppressWarnings("unchecked")
+                            boolean started = cookingStation.startCooking(itemOnStation);
+
+                            if (started) {
+                                System.out.println(id + " started cooking");
+                                this.currentActions = Actions.IDLE;
+                                this.state = true;
+                            } else {
+                                System.out.println(id + " failed to start cooking");
+                            }
+                        } else {
+                            System.out.println(id + " - Item in utensil cannot be cooked");
+                        }
+                    } else {
+                        System.out.println(id + " - Utensil is empty");
+                    }
+                }
+                // Case 3: No utensil on station
+                else if (itemOnStation == null) {
+                    System.out.println(id + " - No cooking utensil on station (place pot/pan first)");
+                }
+                // Case 4: Utensil is empty
+                else if (itemOnStation instanceof items.equipment.CookingDevice) {
+                    items.equipment.KitchenUtensil utensil = (items.equipment.KitchenUtensil) itemOnStation;
+                    if (utensil.getContents().isEmpty()) {
+                        System.out.println(id + " - " + itemOnStation.getClass().getSimpleName() +
+                                         " is empty (hold ingredient and interact to add)");
+                    } else {
+                        System.out.println(id + " - Cannot start cooking (check ingredient state)");
+                    }
+                } else {
+                    System.out.println(id + " - Item on station is not a cooking utensil");
+                }
+            }
+            // TODO: Add other station types here
             else {
                 // Default behavior for other stations
                 this.currentActions = Actions.USINGSTATION;
