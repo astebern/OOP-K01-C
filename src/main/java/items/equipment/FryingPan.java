@@ -105,4 +105,29 @@ public class FryingPan extends KitchenUtensil implements CookingDevice {
     public void setCooking(boolean cooking) {
         this.isCooking = cooking;
     }
+
+    @Override
+    protected String getCookingImagePath(Ingredient ingredient) {
+        String name = ingredient.getName().toLowerCase();
+        IngredientState state = ingredient.getState();
+
+        // If burned, show the burned ingredient image
+        if (state == IngredientState.BURNED) {
+            return "/items/ingredients/" + name + "/" + name + "_burned.png";
+        }
+
+        // Otherwise show cooking image
+        switch (name) {
+            case "daging":
+                return "/items/cooking/fryMeat.png";
+            case "ikan":
+                return "/items/cooking/fryMeat.png"; // Use same image for both meat and fish
+            case "udang":
+                return "/items/cooking/fryShrimp.png";
+            case "tomat":
+                return "/items/cooking/fryTomato.png";
+            default:
+                return null;
+        }
+    }
 }

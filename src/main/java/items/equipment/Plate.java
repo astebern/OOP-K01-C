@@ -37,7 +37,12 @@ public class Plate extends KitchenUtensil {
         this.contents.clear();
         this.isDirty = true;
     }
-    
+
+    @Override
+    protected String getCookingImagePath(items.food.Ingredient ingredient) {
+        return null;
+    }
+
     @Override
     public String toString() {
         String status = isDirty ? "Dirty" : "Clean";

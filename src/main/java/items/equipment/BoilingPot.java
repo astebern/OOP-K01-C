@@ -69,6 +69,8 @@ public class BoilingPot extends KitchenUtensil implements CookingDevice {
     @Override
     public void addIngredient(Preparable item) {
         if (contents.size() < capacity && canAccept(item)) {
+            contents.add(item); // Actually add the item to the pot!
+            System.out.println("Added " + ((Ingredient)item).getName() + " to BoilingPot");
         } else {
             System.out.println("Cannot add item: Pot is full or item is invalid.");
         }
@@ -101,5 +103,23 @@ public class BoilingPot extends KitchenUtensil implements CookingDevice {
     
     public void setCooking(boolean cooking) {
         this.isCooking = cooking;
+    }
+
+    @Override
+    protected String getCookingImagePath(Ingredient ingredient) {
+        String name = ingredient.getName().toLowerCase();
+        IngredientState state = ingredient.getState();
+
+        // If burned, show the burned ingredient image
+        if (state == IngredientState.BURNED) {
+            return "/items/ingredients/" + name + "/" + name + "_burned.png";
+        }
+
+        // Otherwise show cooking image
+        if (name.equals("pasta")) {
+            return "/items/cooking/boilPasta.png";
+        }
+
+        return null; // No specific cooking image
     }
 }
