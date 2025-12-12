@@ -160,38 +160,29 @@ public class GameMap {
                     // Floor and spawn tiles
                     setTileData(x, y, null, null);
                 } else if (tileId == 5) {
-                    Station station = createStationForTile(tileId);
+                    // Ingredient Storage - place ingredient and set storage type for auto-respawn
+                    IngredientStorage storage = (IngredientStorage) createStationForTile(tileId);
                     Ingredient ingredient = null;
+                    String ingredientType = null;
 
                     if (x == 0 && y == 1) {
-                        ingredient = Ingredient.create("Ikan");
-                        ingredient.setChoppable(true);
-                        ingredient.setCookable(true);
-                        ingredient.setCanBePlacedOnPlate(true);
-
+                        ingredientType = "Ikan";
                     } else if (x == 0 && y == 2) {
-                        ingredient = Ingredient.create("Daging");
-                        ingredient.setChoppable(true);
-                        ingredient.setCookable(true);
-                        ingredient.setCanBePlacedOnPlate(true);
+                        ingredientType = "Daging";
                     } else if (x == 0 && y == 3) {
-                        ingredient = Ingredient.create("Udang");
-                        ingredient.setChoppable(true);
-                        ingredient.setCookable(true);
-                        ingredient.setCanBePlacedOnPlate(true);
+                        ingredientType = "Udang";
                     } else if (x == 13 && y == 6) {
-                        ingredient = Ingredient.create("Pasta");
-                        ingredient.setChoppable(false);
-                        ingredient.setCookable(true);
-                        ingredient.setCanBePlacedOnPlate(true);
+                        ingredientType = "Pasta";
                     } else if (x == 13 && y == 7) {
-                        ingredient = Ingredient.create("Tomat");
-                        ingredient.setChoppable(true);
-                        ingredient.setCookable(true);
-                        ingredient.setCanBePlacedOnPlate(true);
+                        ingredientType = "Tomat";
                     }
 
-                    setTileData(x, y, station, ingredient);
+                    if (ingredientType != null) {
+                        storage.setIngredientType(ingredientType);
+                        ingredient = storage.createIngredient();
+                    }
+
+                    setTileData(x, y, storage, ingredient);
                 } else if (tileId == 4) {
                     // Plate Storage - plates are stored internally in PlateStorage stack
                     Station station = createStationForTile(tileId);
@@ -476,6 +467,16 @@ public class GameMap {
         if (data != null && data.item != null) {
             Item removedItem = data.item;
             data.item = null;
+
+            // Auto-respawn ingredient if this is an IngredientStorage tile
+            if (data.station instanceof IngredientStorage) {
+                IngredientStorage storage = (IngredientStorage) data.station;
+                Ingredient newIngredient = storage.createIngredient();
+                if (newIngredient != null) {
+                    data.item = newIngredient;
+                }
+            }
+
             return removedItem;
         }
         return null;
