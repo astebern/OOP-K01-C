@@ -77,9 +77,9 @@ public class StartMenu extends JPanel {
         return button;
     }
 
-    @BetterComments(description = "Transition from StartMenu to Main Gameplay" ,type="method")
+    @BetterComments(description = "Transition from StartMenu to StageMenu" ,type="method")
     private void startGame() {
-        gameMaster.startGame();
+        gameMaster.showStageMenu();
     }
 
     @BetterComments(description = "loads background image" , type="method")

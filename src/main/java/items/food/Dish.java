@@ -26,17 +26,14 @@ public class Dish extends Item {
         return components;
     }
 
-    // [BARU] Menambahkan Setter sesuai Diagram
     public void setComponents(List<Preparable> components) {
         this.components = components;
     }
 
-    // blom ada di class diagram, kyknya perlu
     public void addComponent(Preparable component) {
         this.components.add(component);
     }
 
-    // ini jg kyknya perlu
     public List<Ingredient> getIngredients() {
         List<Ingredient> ingredients = new ArrayList<>();
         for (Preparable p : components) {

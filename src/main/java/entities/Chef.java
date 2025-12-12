@@ -33,25 +33,25 @@ public class Chef {
     private int spriteNum = 1;
 
     @BetterComments(description = "Initializes a chef character at the given position",type="constructor")
-    public Chef(GamePanel gp, KeyHandler keyH, GameMap gameMap, int x, int y){
-        //TODO:Name (masih bingung ini)
-        this.inventory=null;
-        this.currentActions=Actions.IDLE;
-        this.state = true; // true = not busy, false = busy
-        this.id= "Chef"+chef_num;
+    public Chef(GamePanel gp, KeyHandler keyH, GameMap gameMap, int x, int y) {
+        // TODO: Name
+        this.inventory = null;
+        this.currentActions = Actions.IDLE;
+        this.state = true;
+        this.id = "Chef" + chef_num;
         this.gp = gp;
-        this.keyH=keyH;
+        this.keyH = keyH;
         this.gameMap = gameMap;
         this.position = new Position(x, y);
-        this.speed =7;
+        this.speed = 7;
         this.direction = Direction.DOWN;
         getImage();
         chef_num++;
     }
 
-    @BetterComments(description ="Loads the chef’s directional sprite images from the resources folder" ,type = "method")
-    public void getImage(){
-        try{
+    @BetterComments(description = "Loads the chef's directional sprite images from the resources folder", type = "method")
+    public void getImage() {
+        try {
             up1 = ImageIO.read(getClass().getResourceAsStream("/player/up1.png"));
             up2 = ImageIO.read(getClass().getResourceAsStream("/player/up2.png"));
             down1 = ImageIO.read(getClass().getResourceAsStream("/player/down1.png"));
@@ -62,7 +62,7 @@ public class Chef {
             right1 = ImageIO.read(getClass().getResourceAsStream("/player/right1.png"));
             right2 = ImageIO.read(getClass().getResourceAsStream("/player/right2.png"));
             right3 = ImageIO.read(getClass().getResourceAsStream("/player/right3.png"));
-        }catch (IOException e){
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
@@ -166,6 +166,7 @@ public class Chef {
 
     @BetterComments(description = "Handles picking up items from stations or dropping items from inventory", type="method")
     public void pickUpDrop(){
+        // Get the target tile in front of the player (follows the green indicator)
         int targetX = getTileX();
         int targetY = getTileY();
 
@@ -184,28 +185,43 @@ public class Chef {
                 break;
         }
 
+        // Only check bounds
         if (targetX < 0 || targetX >= gameMap.getMapWidth() ||
             targetY < 0 || targetY >= gameMap.getMapHeight()) {
             return;
         }
 
-        Item itemOnTile = gameMap.getItemAt(targetX, targetY);
-
         if (inventory == null) {
-            if (itemOnTile != null) {
-                this.inventory = itemOnTile;
-                gameMap.setTileData(targetX, targetY, gameMap.getStationAt(targetX, targetY), null);
+            // PICKING UP
+            if (!gameMap.canHoldItem(targetX, targetY)) {
+                System.out.println(id + " cannot pickup items from this tile type");
+                return;
+            }
+
+            Item item = gameMap.getItemAt(targetX, targetY);
+            if (item != null) {
+                this.inventory = gameMap.removeItemAt(targetX, targetY);
                 this.currentActions = Actions.PICKINGUP;
                 this.state = true;
-                System.out.println(id + " picked up item from (" + targetX + ", " + targetY + ")");
+                System.out.println(id + " picked up " + item.getClass().getSimpleName() + 
+                                 " from (" + targetX + ", " + targetY + ")");
+            } else {
+                System.out.println(id + " - no item to pick up at (" + targetX + ", " + targetY + ")");
             }
         } else {
-            if (itemOnTile == null) {
-                gameMap.setTileData(targetX, targetY, gameMap.getStationAt(targetX, targetY), this.inventory);
-                this.inventory = null;
-                this.currentActions = Actions.DROOPINGDOWN;
-                this.state = true;
-                System.out.println(id + " dropped item at (" + targetX + ", " + targetY + ")");
+            // DROPPING - can drop anywhere the indicator shows (within bounds)
+            Item existingItem = gameMap.getItemAt(targetX, targetY);
+            if (existingItem == null) {
+                boolean success = gameMap.placeItemAt(targetX, targetY, this.inventory);
+                if (success) {
+                    System.out.println(id + " dropped " + this.inventory.getClass().getSimpleName() +
+                                     " at (" + targetX + ", " + targetY + ")");
+                    this.inventory = null;
+                    this.currentActions = Actions.DROPPINGDOWN;
+                    this.state = true;
+                } else {
+                    System.out.println(id + " failed to drop item");
+                }
             } else {
                 System.out.println(id + " cannot drop - tile already has an item");
             }
@@ -239,6 +255,18 @@ public class Chef {
             return;
         }
 
+        int chefCenterX = this.position.getX() + gp.tileSize / 2;
+        int chefCenterY = this.position.getY() + gp.tileSize / 2;
+        int targetCenterX = targetX * gp.tileSize + gp.tileSize / 2;
+        int targetCenterY = targetY * gp.tileSize + gp.tileSize / 2;
+
+        double distance = Math.sqrt(Math.pow(chefCenterX - targetCenterX, 2) + Math.pow(chefCenterY - targetCenterY, 2));
+        double maxDistance = gp.tileSize;
+
+        if (distance > maxDistance) {
+            return;
+        }
+
         Station station = gameMap.getStationAt(targetX, targetY);
 
         if (station != null) {
@@ -265,6 +293,28 @@ public class Chef {
     @BetterComments(description = "Gets the tile Y coordinate the chef is standing on", type="method")
     private int getTileY() {
         return (this.position.getY() + gp.tileSize / 2) / gp.tileSize;
+    }
+
+    @BetterComments(description = "Gets the tile X coordinate in front of the chef based on direction", type="method")
+    public int getTargetTileX() {
+        int targetX = getTileX();
+        if (direction == Direction.LEFT) {
+            targetX--;
+        } else if (direction == Direction.RIGHT) {
+            targetX++;
+        }
+        return targetX;
+    }
+
+    @BetterComments(description = "Gets the tile Y coordinate in front of the chef based on direction", type="method")
+    public int getTargetTileY() {
+        int targetY = getTileY();
+        if (direction == Direction.UP) {
+            targetY--;
+        } else if (direction == Direction.DOWN) {
+            targetY++;
+        }
+        return targetY;
     }
 
     // Getters and Setters

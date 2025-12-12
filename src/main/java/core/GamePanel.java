@@ -12,7 +12,7 @@ public class GamePanel extends JPanel implements Runnable{
     final int originalTilSize = 16;
     final int scale = 6;
     public final int tileSize = originalTilSize * scale;
-    final int columns = 14;
+    final int columns = 19;
     final int rows = 10;
     final int screenWidth = columns * tileSize;
     final int screenHeight = rows * tileSize;
@@ -107,6 +107,18 @@ public class GamePanel extends JPanel implements Runnable{
             int x = activeChef.getPosition().getX();
             int y = activeChef.getPosition().getY();
             g2.drawRect(x - 2, y - 2, tileSize + 4, tileSize + 4);
+
+            // Draw indicator for target tile (tile in front of chef)
+            int targetTileX = activeChef.getTargetTileX();
+            int targetTileY = activeChef.getTargetTileY();
+            if (targetTileX >= 0 && targetTileX < tileM.getMapWidth() &&
+                targetTileY >= 0 && targetTileY < tileM.getMapHeight()) {
+                g2.setColor(Color.GREEN);
+                g2.setStroke(new BasicStroke(2));
+                int targetX = targetTileX * tileSize;
+                int targetY = targetTileY * tileSize;
+                g2.drawRect(targetX + 2, targetY + 2, tileSize - 4, tileSize - 4);
+            }
         }
 
         g2.dispose();

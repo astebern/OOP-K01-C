@@ -8,6 +8,6 @@ public interface Preparable {
     void chop();
     void setChoppable(boolean choppable);
     void setCookable(boolean cookable);
-    void setcanPlaceOnPlate (boolean canPlace);
+    void setCanBePlacedOnPlate(boolean canPlace);
 }
 

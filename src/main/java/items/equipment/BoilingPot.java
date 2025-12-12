@@ -18,7 +18,7 @@ public class BoilingPot extends KitchenUtensil implements CookingDevice {
         this.portable = true; 
         this.isCooking = false;
 
-        // buat bahan yang bisa digodog
+        // Ingredients that can be boiled
         this.acceptableNames = new ArrayList<>();
         acceptableNames.add("Pasta");
         acceptableNames.add("Rice");
@@ -63,7 +63,7 @@ public class BoilingPot extends KitchenUtensil implements CookingDevice {
 
     @Override
     public void removeIngredient(Preparable item) {
-        // Menggunakan contents dari parent
+        // Using contents from parent class
         if (contents.contains(item)) {
             contents.remove(item);
         }

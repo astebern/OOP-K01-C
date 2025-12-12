@@ -61,9 +61,14 @@ public class Ingredient extends Item implements Preparable {
         }
     }
 
-    @Override public void setChoppable(boolean choppable) {}
-    @Override public void setCookable(boolean cookable) {}
-    @Override public void setcanPlaceOnPlate(boolean canPlace) {}
+    @Override
+    public void setChoppable(boolean choppable) {}
+
+    @Override
+    public void setCookable(boolean cookable) {}
+
+    @Override
+    public void setCanBePlacedOnPlate(boolean canPlace) {}
 
     @Override
     public String toString() {

@@ -2,6 +2,8 @@ package map;
 
 import core.GamePanel;
 import items.Item;
+import items.equipment.BoilingPot;
+import items.equipment.FryingPan;
 import stations.*;
 import utils.BetterComments;
 import utils.Position;
@@ -20,7 +22,7 @@ public class GameMap {
     private static final int MAP_WIDTH = 14;
     private static final int MAP_HEIGHT = 10;
 
-    @BetterComments(description = "inner class to store Station and item data for each tile",type="inner class")
+    @BetterComments(description = "inner class to store Station (for station tiles) AND single Item (all tiles except walls can hold items)",type="inner class")
     private static class TileData {
         Station station;
         Item item;
@@ -139,15 +141,43 @@ public class GameMap {
 
         // Populate tile data map with stations (no items)
         populateTileData();
+
     }
 
-    @BetterComments(description = "Populates the tile data map with station instances for each tile position", type="method")
+    @BetterComments(description = "Populates the tile data map with station instances for station tiles and item slot for floor/spawn tiles only", type="method")
     private void populateTileData() {
         for (int y = 0; y < MAP_HEIGHT; y++) {
             for (int x = 0; x < MAP_WIDTH; x++) {
                 int tileId = mapData[y][x];
-                Station station = createStationForTile(tileId);
-                setTileData(x, y, station, null); // No items at start of game
+
+                if (tileId == 2) {
+                    // Wall tiles - skip
+                    continue;
+                } else if (tileId == 0 || tileId == 1) {
+                    // Floor and spawn tiles
+                    setTileData(x, y, null, null);
+                } else if (tileId == 9) {
+                    // Cooking Station - add utensil based on x position
+                    Station station = createStationForTile(tileId);
+                    Item utensil = null;
+                    
+                    // Cooking stations at x=0 get BoilingPot, others get FryingPan
+                    if (x == 0) {
+                        utensil = new BoilingPot();
+                        System.out.println("Placed BoilingPot at CookingStation (" + x + ", " + y + ")");
+                    } else {
+                        utensil = new FryingPan();
+                        System.out.println("Placed FryingPan at CookingStation (" + x + ", " + y + ")");
+                    }
+                    
+                    setTileData(x, y, station, utensil);
+                } else {
+                    // Other station tiles
+                    Station station = createStationForTile(tileId);
+                    if (station != null) {
+                        setTileData(x, y, station, null);
+                    }
+                }
             }
         }
     }
@@ -178,58 +208,58 @@ public class GameMap {
 
     @BetterComments(description = "Loads all tile images from resources and configures which tiles are walkable or solid",type="method")
     public void getTileImage() {
-        try{
-            //floor(walkable space)
-            tiles[0] =new Tile ();
+        try {
+            // Floor (walkable space)
+            tiles[0] = new Tile();
             tiles[0].image = ImageIO.read(getClass().getResourceAsStream("/tile/floor_tile.png"));
-            tiles[0].collision=false;
-            //spawn point
-            tiles[1] =new Tile ();
+            tiles[0].collision = false;
+            // Spawn point
+            tiles[1] = new Tile();
             tiles[1].image = ImageIO.read(getClass().getResourceAsStream("/tile/spawn_tile.png"));
-            tiles[1].collision=false;
-            //wall
-            tiles[2] =new Tile ();
+            tiles[1].collision = false;
+            // Wall
+            tiles[2] = new Tile();
             tiles[2].image = ImageIO.read(getClass().getResourceAsStream("/tile/wall_tile.png"));
-            tiles[2].collision=true;
-            //Trash Station
-            tiles[3] =new Tile ();
+            tiles[2].collision = true;
+            // Trash Station
+            tiles[3] = new Tile();
             tiles[3].image = ImageIO.read(getClass().getResourceAsStream("/tile/trash_tile.png"));
-            tiles[3].collision=true;
-            //Plate Storage
-            tiles[4] =new Tile ();
+            tiles[3].collision = true;
+            // Plate Storage
+            tiles[4] = new Tile();
             tiles[4].image = ImageIO.read(getClass().getResourceAsStream("/tile/plate_tile.png"));
-            tiles[4].collision=true;
-            //Ingredient Storage
-            tiles[5] =new Tile ();
+            tiles[4].collision = true;
+            // Ingredient Storage
+            tiles[5] = new Tile();
             tiles[5].image = ImageIO.read(getClass().getResourceAsStream("/tile/ingredient_tile.png"));
-            tiles[5].collision=true;
-            //Washing Station
-            tiles[6] =new Tile ();
+            tiles[5].collision = true;
+            // Washing Station
+            tiles[6] = new Tile();
             tiles[6].image = ImageIO.read(getClass().getResourceAsStream("/tile/washing_tile.png"));
-            tiles[6].collision=true;
-            //Serving Counter
-            tiles[7] =new Tile ();
+            tiles[6].collision = true;
+            // Serving Counter
+            tiles[7] = new Tile();
             tiles[7].image = ImageIO.read(getClass().getResourceAsStream("/tile/serving_tile.png"));
-            tiles[7].collision=true;
-            //Assembly Station
-            tiles[8] =new Tile ();
+            tiles[7].collision = true;
+            // Assembly Station
+            tiles[8] = new Tile();
             tiles[8].image = ImageIO.read(getClass().getResourceAsStream("/tile/assembly_tile.png"));
-            tiles[8].collision=true;
-            //Cooking Station
-            tiles[9] =new Tile ();
+            tiles[8].collision = true;
+            // Cooking Station
+            tiles[9] = new Tile();
             tiles[9].image = ImageIO.read(getClass().getResourceAsStream("/tile/cooking_tile.png"));
-            tiles[9].collision=true;
+            tiles[9].collision = true;
             //Cutting Station
-            tiles[10] =new Tile ();
+            tiles[10] = new Tile();
             tiles[10].image = ImageIO.read(getClass().getResourceAsStream("/tile/cutting_tile.png"));
-            tiles[10].collision=true;
-        }catch (IOException e){
+            tiles[10].collision = true;
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    @BetterComments(description = "Renders the entire tile map to the screen by drawing the correct tile image at each grid position",type="method")
-    public void draw(Graphics2D g2){
+    @BetterComments(description = "Renders the entire tile map to the screen by drawing the correct tile image at each grid position", type = "method")
+    public void draw(Graphics2D g2) {
         for (int y = 0; y < MAP_HEIGHT; y++) {
             for (int x = 0; x < MAP_WIDTH; x++) {
                 int tileId = mapData[y][x];
@@ -280,6 +310,42 @@ public class GameMap {
         return data != null ? data.item : null;
     }
 
+    @BetterComments(description = "Places an Item at a specific tile position. Only works on floor (0) and spawn (1) tiles", type="method")
+    public boolean placeItemAt(int x, int y, Item item) {
+        if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) {
+            return false;
+        }
+
+
+        TileData data = tileDataMap.get(new Position(x, y));
+        if (data != null) {
+            data.item = item;
+            return true;
+        }
+        return false;
+    }
+
+    @BetterComments(description = "Removes and returns the Item from a specific tile position", type="method")
+    public Item removeItemAt(int x, int y) {
+        TileData data = tileDataMap.get(new Position(x, y));
+        if (data != null && data.item != null) {
+            Item removedItem = data.item;
+            data.item = null;
+            return removedItem;
+        }
+        return null;
+    }
+
+    @BetterComments(description = "Checks if a tile can hold items (all tiles except walls)", type = "method")
+    public boolean canHoldItem(int x, int y) {
+        if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) {
+            return false;
+        }
+        int tileId = mapData[y][x];
+        // Allow items on all tiles except walls (tileId == 2)
+        return tileId != 2;
+    }
+
     @BetterComments(description = "Removes tile data from a specific position", type="method")
     public void clearTileData(int x, int y) {
         tileDataMap.remove(new Position(x, y));
@@ -298,9 +364,10 @@ public class GameMap {
                 Item item = getItemAt(x, y);
 
                 String stationName = station != null ? station.getClass().getSimpleName() : "null";
-                String itemName = item != null ? item.getClass().getSimpleName() : "null";
+                String itemInfo = item != null ? item.getClass().getSimpleName() : "null";
+                String canHold = canHoldItem(x, y) ? " [Can hold items]" : "";
                 System.out.println("Position (" + x + ", " + y + ") - Tile ID: " + mapData[y][x] +
-                                 " - Station: " + stationName + " - Item: " + itemName);
+                                 " - Station: " + stationName + " - Item: " + itemInfo + canHold);
             }
         }
         System.out.println("==============================");
