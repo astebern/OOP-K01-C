@@ -8,26 +8,23 @@ import java.util.List;
 
 public class BoilingPot extends KitchenUtensil implements CookingDevice {
     private int capacity;
-    private boolean portable;
-    private List<String> acceptableNames; 
+    private List<String> acceptableNames;
     private boolean isCooking; 
 
     public BoilingPot() {
         super(); 
         this.capacity = 1; 
-        this.portable = true; 
         this.isCooking = false;
 
         // Ingredients that can be boiled
         this.acceptableNames = new ArrayList<>();
         acceptableNames.add("Pasta");
-        acceptableNames.add("Rice");
-        acceptableNames.add("Potato");
+
     }
 
     @Override
     public boolean isPortable() {
-        return portable;
+        return false; // BoilingPot cannot be picked up
     }
 
     @Override

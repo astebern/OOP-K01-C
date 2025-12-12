@@ -3,7 +3,6 @@ package items.equipment;
 import items.Preparable;
 
 public interface CookingDevice {
-    boolean isPortable();
 
     int getCapacity();
 

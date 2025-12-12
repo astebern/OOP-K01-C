@@ -162,6 +162,14 @@ public class Chef {
                 break;
         }
         g2.drawImage(image,this.position.getX(),this.position.getY(),gp.tileSize,gp.tileSize,null);
+
+        // Draw inventory item above chef if carrying something
+        if (inventory != null && inventory.getImage() != null) {
+            int itemSize = gp.tileSize / 2;
+            int itemX = this.position.getX() + (gp.tileSize - itemSize) / 2;
+            int itemY = this.position.getY() - itemSize / 2;
+            g2.drawImage(inventory.getImage(), itemX, itemY, itemSize, itemSize, null);
+        }
     }
 
     @BetterComments(description = "Handles picking up items from stations or dropping items from inventory", type="method")
@@ -191,6 +199,7 @@ public class Chef {
             return;
         }
 
+
         if (inventory == null) {
             // PICKING UP
             if (!gameMap.canHoldItem(targetX, targetY)) {
@@ -200,6 +209,13 @@ public class Chef {
 
             Item item = gameMap.getItemAt(targetX, targetY);
             if (item != null) {
+                // Check if item is portable
+                if (!item.isPortable()) {
+                    System.out.println(id + " cannot pick up " + item.getClass().getSimpleName() +
+                                     " - item is not portable");
+                    return;
+                }
+
                 this.inventory = gameMap.removeItemAt(targetX, targetY);
                 this.currentActions = Actions.PICKINGUP;
                 this.state = true;
@@ -255,6 +271,7 @@ public class Chef {
             return;
         }
 
+        // Check distance for station interaction
         int chefCenterX = this.position.getX() + gp.tileSize / 2;
         int chefCenterY = this.position.getY() + gp.tileSize / 2;
         int targetCenterX = targetX * gp.tileSize + gp.tileSize / 2;
@@ -264,6 +281,7 @@ public class Chef {
         double maxDistance = gp.tileSize;
 
         if (distance > maxDistance) {
+            System.out.println(id + " is too far from the station");
             return;
         }
 

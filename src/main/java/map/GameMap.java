@@ -4,6 +4,7 @@ import core.GamePanel;
 import items.Item;
 import items.equipment.BoilingPot;
 import items.equipment.FryingPan;
+import items.food.Ingredient;
 import stations.*;
 import utils.BetterComments;
 import utils.Position;
@@ -156,6 +157,39 @@ public class GameMap {
                 } else if (tileId == 0 || tileId == 1) {
                     // Floor and spawn tiles
                     setTileData(x, y, null, null);
+                } else if (tileId == 5) {
+                    Station station = createStationForTile(tileId);
+                    Ingredient ingredient = null;
+
+                    if (x == 0 && y == 1) {
+                        ingredient = Ingredient.create("Ikan");
+                        ingredient.setChoppable(true);
+                        ingredient.setCookable(true);
+                        ingredient.setCanBePlacedOnPlate(true);
+
+                    } else if (x == 0 && y == 2) {
+                        ingredient = Ingredient.create("Daging");
+                        ingredient.setChoppable(true);
+                        ingredient.setCookable(true);
+                        ingredient.setCanBePlacedOnPlate(true);
+                    } else if (x == 0 && y == 3) {
+                        ingredient = Ingredient.create("Udang");
+                        ingredient.setChoppable(true);
+                        ingredient.setCookable(true);
+                        ingredient.setCanBePlacedOnPlate(true);
+                    } else if (x == 13 && y == 6) {
+                        ingredient = Ingredient.create("Pasta");
+                        ingredient.setChoppable(false);
+                        ingredient.setCookable(true);
+                        ingredient.setCanBePlacedOnPlate(true);
+                    } else if (x == 13 && y == 7) {
+                        ingredient = Ingredient.create("Tomat");
+                        ingredient.setChoppable(true);
+                        ingredient.setCookable(true);
+                        ingredient.setCanBePlacedOnPlate(true);
+                    }
+
+                    setTileData(x, y, station, ingredient);
                 } else if (tileId == 9) {
                     // Cooking Station - add utensil based on x position
                     Station station = createStationForTile(tileId);
@@ -260,12 +294,26 @@ public class GameMap {
 
     @BetterComments(description = "Renders the entire tile map to the screen by drawing the correct tile image at each grid position", type = "method")
     public void draw(Graphics2D g2) {
+        // Draw tiles first
         for (int y = 0; y < MAP_HEIGHT; y++) {
             for (int x = 0; x < MAP_WIDTH; x++) {
                 int tileId = mapData[y][x];
                 int screenX = x * gp.tileSize;
                 int screenY = y * gp.tileSize;
                 g2.drawImage(tiles[tileId].image, screenX, screenY, gp.tileSize, gp.tileSize, null);
+            }
+        }
+
+        // Draw items on top of tiles (centered, half tile size)
+        for (int y = 0; y < MAP_HEIGHT; y++) {
+            for (int x = 0; x < MAP_WIDTH; x++) {
+                Item item = getItemAt(x, y);
+                if (item != null && item.getImage() != null) {
+                    int itemSize = gp.tileSize / 2;
+                    int screenX = x * gp.tileSize + (gp.tileSize - itemSize) / 2;
+                    int screenY = y * gp.tileSize + (gp.tileSize - itemSize) / 2;
+                    g2.drawImage(item.getImage(), screenX, screenY, itemSize, itemSize, null);
+                }
             }
         }
     }
@@ -310,12 +358,17 @@ public class GameMap {
         return data != null ? data.item : null;
     }
 
-    @BetterComments(description = "Places an Item at a specific tile position. Only works on floor (0) and spawn (1) tiles", type="method")
+    @BetterComments(description = "Places an Item at a specific tile position. Works on all tiles except walls (tileId 2)", type="method")
     public boolean placeItemAt(int x, int y, Item item) {
         if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) {
             return false;
         }
 
+        int tileId = mapData[y][x];
+        if (tileId == 2) {
+            System.out.println("Cannot place item on wall tile at (" + x + ", " + y + ")");
+            return false;
+        }
 
         TileData data = tileDataMap.get(new Position(x, y));
         if (data != null) {

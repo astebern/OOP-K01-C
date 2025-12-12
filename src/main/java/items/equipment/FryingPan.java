@@ -8,27 +8,25 @@ import java.util.List;
 
 public class FryingPan extends KitchenUtensil implements CookingDevice {
     private int capacity;
-    private boolean portable;
     private List<String> acceptableNames;
     private boolean isCooking;
 
     public FryingPan() {
         super(); 
         this.capacity = 1; 
-        this.portable = true;
         this.isCooking = false;
 
         // Ingredients that can be fried
         this.acceptableNames = new ArrayList<>();
-        acceptableNames.add("Meat");   
-        acceptableNames.add("Fish");  
-        acceptableNames.add("Shrimp");  
-        acceptableNames.add("Tomato"); 
+        acceptableNames.add("Daging");
+        acceptableNames.add("Ikan");
+        acceptableNames.add("Udang");
+        acceptableNames.add("Tomat");
     }
 
     @Override
     public boolean isPortable() {
-        return portable;
+        return false; // FryingPan cannot be picked up
     }
 
     @Override
