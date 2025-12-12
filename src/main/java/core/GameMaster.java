@@ -14,6 +14,7 @@ public class GameMaster {
     private GamePanel gamePanel;
     private JFrame frame;
     private StartMenu startMenu;
+    private StageMenu stageMenu;
 
     @BetterComments(description="Singleton pattern used to create GameMaster Object",type="constructor")
     public GameMaster(){
@@ -38,7 +39,33 @@ public class GameMaster {
         frame.setVisible(true);
     }
 
-    @BetterComments(description="Replace the start menu and initialize the main gameplay panel",type="method")
+    @BetterComments(description="Show stage selection menu",type="method")
+    public void showStageMenu(){
+        frame.getContentPane().removeAll();
+
+        stageMenu = new StageMenu(this);
+        frame.add(stageMenu);
+
+        frame.revalidate();
+        frame.repaint();
+        frame.pack();
+        frame.setLocationRelativeTo(null);
+    }
+
+    @BetterComments(description="Go back to start menu",type="method")
+    public void showStartMenu(){
+        frame.getContentPane().removeAll();
+
+        startMenu = new StartMenu(this);
+        frame.add(startMenu);
+
+        frame.revalidate();
+        frame.repaint();
+        frame.pack();
+        frame.setLocationRelativeTo(null);
+    }
+
+    @BetterComments(description="Replace the stage menu and initialize the main gameplay panel",type="method")
     public void startGame(){
         frame.getContentPane().removeAll();
 
@@ -48,6 +75,7 @@ public class GameMaster {
         frame.revalidate();
         frame.repaint();
         frame.pack();
+        frame.setLocationRelativeTo(null);
 
         gamePanel.startGameThread();
         gamePanel.requestFocusInWindow();

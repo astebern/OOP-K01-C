@@ -18,7 +18,7 @@ public class FryingPan extends KitchenUtensil implements CookingDevice {
         this.portable = true;
         this.isCooking = false;
 
-        // bahan yang bisa digoreng
+        // Ingredients that can be fried
         this.acceptableNames = new ArrayList<>();
         acceptableNames.add("Meat");   
         acceptableNames.add("Fish");  
