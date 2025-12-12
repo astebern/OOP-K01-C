@@ -9,6 +9,7 @@ import java.io.IOException;
 public class Ingredient extends Item implements Preparable {
     private String name;            
     private IngredientState state;
+    private boolean choppable = true; // By default, ingredients can be chopped
 
     private Ingredient(String name) {
         this.name = name;
@@ -17,7 +18,14 @@ public class Ingredient extends Item implements Preparable {
     }
 
     public static Ingredient create(String name) {
-        return new Ingredient(name);
+        Ingredient ingredient = new Ingredient(name);
+
+        // Set special properties for specific ingredients
+        if (name.equalsIgnoreCase("Pasta")) {
+            ingredient.setChoppable(false); // Pasta cannot be chopped
+        }
+
+        return ingredient;
     }
 
     private void loadImage() {
@@ -34,11 +42,20 @@ public class Ingredient extends Item implements Preparable {
                     break;
                 case COOKING:
                     // During cooking, ingredient is in utensil (not visible)
-                    // Use chopped image as fallback if ingredient is picked up during cooking
-                    stateStr = "chopped";
+                    // Pasta doesn't have chopped state, use raw for pasta
+                    if (nameLower.equals("pasta")) {
+                        stateStr = "raw";
+                    } else {
+                        stateStr = "chopped";
+                    }
                     break;
                 case COOKED:
-                    stateStr = "cooked";
+                    // Pasta doesn't have cooked image, use raw
+                    if (nameLower.equals("pasta")) {
+                        stateStr = "raw";
+                    } else {
+                        stateStr = "cooked";
+                    }
                     break;
                 case BURNED:
                     stateStr = "burned";
@@ -75,7 +92,7 @@ public class Ingredient extends Item implements Preparable {
 
     @Override
     public boolean canBeChopped() {
-        return state == IngredientState.RAW;
+        return choppable && state == IngredientState.RAW;
     }
 
     @Override
@@ -105,7 +122,9 @@ public class Ingredient extends Item implements Preparable {
     }
 
     @Override
-    public void setChoppable(boolean choppable) {}
+    public void setChoppable(boolean choppable) {
+        this.choppable = choppable;
+    }
 
     @Override
     public void setCookable(boolean cookable) {}

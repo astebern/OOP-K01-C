@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class GameMaster {
+    private static GameMaster instance;
+
     private Boolean isGameRunning;
     private List<Chef> chefList;
     private int activeChefIndex;
@@ -22,13 +24,21 @@ public class GameMaster {
     private int unlockedStages = 1; // Stage yang terbuka (default 1)
     private int currentStagePlayed = 1;
 
-    @BetterComments(description="Singleton pattern used to create GameMaster Object",type="constructor")
-    public GameMaster(){
+    @BetterComments(description="Private constructor for Singleton pattern",type="constructor")
+    private GameMaster(){
         this.isGameRunning = true;
         this.chefList = new ArrayList<>();
         this.activeChefIndex = 0;
         // [BARU] Inisialisasi OrderManager dengan referensi 'this'
         this.orderManager = new OrderManager(this);
+    }
+
+    @BetterComments(description="Get the singleton instance of GameMaster",type="method")
+    public static GameMaster getInstance(){
+        if(instance == null){
+            instance = new GameMaster();
+        }
+        return instance;
     }
 
     @BetterComments(description="creates game window",type="method")

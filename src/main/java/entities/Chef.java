@@ -4,9 +4,12 @@ import core.GamePanel;
 import core.KeyHandler;
 import items.Item;
 import map.GameMap;
+import stations.AssemblyStation;
 import stations.CookingStation;
 import stations.CuttingStation;
+import stations.PlateStorage;
 import stations.Station;
+import stations.TrashStation;
 import utils.Actions;
 import utils.BetterComments;
 import utils.Direction;
@@ -183,6 +186,24 @@ public class Chef {
             int itemX = this.position.getX() + (gp.tileSize - itemSize) / 2;
             int itemY = this.position.getY() - itemSize / 2;
             g2.drawImage(inventory.getImage(), itemX, itemY, itemSize, itemSize, null);
+
+            // If inventory is a plate with contents, draw the ingredient on top
+            if (inventory instanceof items.equipment.Plate) {
+                items.equipment.Plate plate = (items.equipment.Plate) inventory;
+                if (!plate.getContents().isEmpty()) {
+                    items.Preparable content = plate.getContents().get(0);
+                    if (content instanceof Item) {
+                        Item ingredientItem = (Item) content;
+                        if (ingredientItem.getImage() != null) {
+                            // Draw ingredient on top of plate (smaller)
+                            int ingredientSize = gp.tileSize / 3;
+                            int ingredientX = this.position.getX() + (gp.tileSize - ingredientSize) / 2;
+                            int ingredientY = this.position.getY() - itemSize / 2 - 3; // Slightly above plate
+                            g2.drawImage(ingredientItem.getImage(), ingredientX, ingredientY, ingredientSize, ingredientSize, null);
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -216,6 +237,27 @@ public class Chef {
 
         if (inventory == null) {
             // PICKING UP
+
+            // Check if picking up from PlateStorage
+            Station stationAtTile = gameMap.getStationAt(targetX, targetY);
+            if (stationAtTile instanceof PlateStorage) {
+                PlateStorage plateStorage = (PlateStorage) stationAtTile;
+                if (plateStorage.hasPlates()) {
+                    items.equipment.Plate plate = plateStorage.takePlate();
+                    if (plate != null) {
+                        this.inventory = plate;
+                        this.currentActions = Actions.PICKINGUP;
+                        this.state = true;
+                        System.out.println(id + " picked up plate from PlateStorage (" +
+                                         plateStorage.getPlateCount() + " plates remaining)");
+                        return;
+                    }
+                } else {
+                    System.out.println(id + " - PlateStorage is empty");
+                    return;
+                }
+            }
+
             if (!gameMap.canHoldItem(targetX, targetY)) {
                 System.out.println(id + " cannot pickup items from this tile type");
                 return;
@@ -223,8 +265,9 @@ public class Chef {
 
             Item item = gameMap.getItemAt(targetX, targetY);
             if (item != null) {
-                // Special case: If item is a cooking utensil with contents, pick up the ingredient inside
-                if (item instanceof items.equipment.KitchenUtensil) {
+                // Special case: If item is a cooking device (not a Plate) with contents, pick up the ingredient inside
+                if (item instanceof items.equipment.CookingDevice &&
+                    item instanceof items.equipment.KitchenUtensil) {
                     items.equipment.KitchenUtensil utensil = (items.equipment.KitchenUtensil) item;
 
                     if (!utensil.getContents().isEmpty()) {
@@ -232,7 +275,7 @@ public class Chef {
                         items.Preparable ingredientInside = utensil.getContents().get(0);
 
                         // Stop cooking if it's on a cooking station
-                        Station stationAtTile = gameMap.getStationAt(targetX, targetY);
+                        // Reuse stationAtTile variable already declared at the start of pickup block
                         if (stationAtTile instanceof CookingStation && stationAtTile.isInProgress()) {
                             ((CookingStation) stationAtTile).stopCooking();
                             System.out.println(id + " picked up item from utensil - cooking stopped");
@@ -280,7 +323,7 @@ public class Chef {
                 }
 
                 // Check if picking up from a station with progress (like CuttingStation)
-                Station stationAtTile = gameMap.getStationAt(targetX, targetY);
+                // Reuse stationAtTile variable already declared at the start of pickup block
                 if (stationAtTile != null) {
                     // Stop station processes
                     if (stationAtTile instanceof CuttingStation && stationAtTile.isInProgress()) {
@@ -305,7 +348,79 @@ public class Chef {
             }
         } else {
             // DROPPING - can drop anywhere the indicator shows (within bounds)
+
+            // Check if dropping on a TrashStation
+            Station stationAtTile = gameMap.getStationAt(targetX, targetY);
+            if (stationAtTile instanceof TrashStation) {
+                TrashStation trashStation = (TrashStation) stationAtTile;
+                boolean shouldDelete = trashStation.disposeItem(this.inventory);
+
+                if (shouldDelete) {
+                    // Item is deleted (ingredient, utensil, etc.)
+                    this.inventory = null;
+                    System.out.println(id + " disposed item in trash");
+                } else {
+                    // Item remains in inventory (plate with cleared contents)
+                    System.out.println(id + " cleared plate contents in trash (plate kept)");
+                }
+
+                this.currentActions = Actions.DROPPINGDOWN;
+                this.state = true;
+                return; // Exit early, item handled by trash
+            }
+
+            // Check if dropping on a PlateStorage
+            if (stationAtTile instanceof PlateStorage) {
+                PlateStorage plateStorage = (PlateStorage) stationAtTile;
+
+                // Only allow plates to be dropped on PlateStorage
+                if (this.inventory instanceof items.equipment.Plate) {
+                    items.equipment.Plate plate = (items.equipment.Plate) this.inventory;
+
+                    if (plateStorage.storePlate(plate)) {
+                        this.inventory = null;
+                        System.out.println(id + " returned plate to PlateStorage (" +
+                                         plateStorage.getPlateCount() + " plates now in storage)");
+                        this.currentActions = Actions.DROPPINGDOWN;
+                        this.state = true;
+                        return;
+                    }
+                } else {
+                    System.out.println(id + " - Only plates can be placed on PlateStorage");
+                    return;
+                }
+            }
+
             Item existingItem = gameMap.getItemAt(targetX, targetY);
+
+            // Special case: If tile has a plate, try to add ingredient onto it
+            if (existingItem instanceof items.equipment.Plate) {
+                items.equipment.Plate plate = (items.equipment.Plate) existingItem;
+                
+                // Check if inventory is a preparable item (ingredient)
+                if (this.inventory instanceof items.Preparable) {
+                    items.Preparable preparable = (items.Preparable) this.inventory;
+                    
+                    // Check if plate is full (capacity: 1)
+                    if (!plate.getContents().isEmpty()) {
+                        System.out.println(id + " - Plate is full (capacity: 1 item)");
+                        return;
+                    }
+                    
+                    // Add ingredient to plate
+                    plate.addContent(preparable);
+                    System.out.println(id + " added " +
+                                     ((items.food.Ingredient)preparable).getName() +
+                                     " to plate");
+                    this.inventory = null;
+                    this.currentActions = Actions.DROPPINGDOWN;
+                    this.state = true;
+                    return;
+                } else {
+                    System.out.println(id + " - Can only add ingredients to plates");
+                    return;
+                }
+            }
 
             // Special case: If tile has a cooking utensil, try to add ingredient into it
             if (existingItem != null && existingItem instanceof items.equipment.CookingDevice) {
@@ -339,15 +454,36 @@ public class Chef {
             }
             // Normal drop - tile is empty
             else if (existingItem == null) {
-                boolean success = gameMap.placeItemAt(targetX, targetY, this.inventory);
-                if (success) {
-                    System.out.println(id + " dropped " + this.inventory.getClass().getSimpleName() +
-                                     " at (" + targetX + ", " + targetY + ")");
-                    this.inventory = null;
-                    this.currentActions = Actions.DROPPINGDOWN;
-                    this.state = true;
+                // Special handling for AssemblyStation - ingredients go into the station, not on the tile
+                if (stationAtTile instanceof AssemblyStation) {
+                    if (this.inventory instanceof items.food.Ingredient) {
+                        AssemblyStation assemblyStation = (AssemblyStation) stationAtTile;
+                        items.food.Ingredient ingredient = (items.food.Ingredient) this.inventory;
+
+                        items.food.Dish dish = assemblyStation.addIngredient(ingredient, gameMap, targetX, targetY);
+
+                        this.inventory = null;
+                        this.currentActions = Actions.DROPPINGDOWN;
+                        this.state = true;
+
+                        if (dish != null) {
+                            System.out.println(id + " - " + dish.getName() + " was assembled!");
+                        }
+                    } else {
+                        System.out.println(id + " - AssemblyStation only accepts ingredients");
+                    }
                 } else {
-                    System.out.println(id + " failed to drop item");
+                    // Normal drop on other tiles
+                    boolean success = gameMap.placeItemAt(targetX, targetY, this.inventory);
+                    if (success) {
+                        System.out.println(id + " dropped " + this.inventory.getClass().getSimpleName() +
+                                         " at (" + targetX + ", " + targetY + ")");
+                        this.inventory = null;
+                        this.currentActions = Actions.DROPPINGDOWN;
+                        this.state = true;
+                    } else {
+                        System.out.println(id + " failed to drop item");
+                    }
                 }
             }
             // Tile has non-utensil item

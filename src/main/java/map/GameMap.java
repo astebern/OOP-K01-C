@@ -12,6 +12,7 @@ import utils.Position;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -159,44 +160,34 @@ public class GameMap {
                     // Floor and spawn tiles
                     setTileData(x, y, null, null);
                 } else if (tileId == 5) {
-                    Station station = createStationForTile(tileId);
+                    // Ingredient Storage - place ingredient and set storage type for auto-respawn
+                    IngredientStorage storage = (IngredientStorage) createStationForTile(tileId);
                     Ingredient ingredient = null;
+                    String ingredientType = null;
 
                     if (x == 0 && y == 1) {
-                        ingredient = Ingredient.create("Ikan");
-                        ingredient.setChoppable(true);
-                        ingredient.setCookable(true);
-                        ingredient.setCanBePlacedOnPlate(true);
-
+                        ingredientType = "Ikan";
                     } else if (x == 0 && y == 2) {
-                        ingredient = Ingredient.create("Daging");
-                        ingredient.setChoppable(true);
-                        ingredient.setCookable(true);
-                        ingredient.setCanBePlacedOnPlate(true);
+                        ingredientType = "Daging";
                     } else if (x == 0 && y == 3) {
-                        ingredient = Ingredient.create("Udang");
-                        ingredient.setChoppable(true);
-                        ingredient.setCookable(true);
-                        ingredient.setCanBePlacedOnPlate(true);
+                        ingredientType = "Udang";
                     } else if (x == 13 && y == 6) {
-                        ingredient = Ingredient.create("Pasta");
-                        ingredient.setChoppable(false);
-                        ingredient.setCookable(true);
-                        ingredient.setCanBePlacedOnPlate(true);
+                        ingredientType = "Pasta";
                     } else if (x == 13 && y == 7) {
-                        ingredient = Ingredient.create("Tomat");
-                        ingredient.setChoppable(true);
-                        ingredient.setCookable(true);
-                        ingredient.setCanBePlacedOnPlate(true);
+                        ingredientType = "Tomat";
                     }
 
-                    setTileData(x, y, station, ingredient);
+                    if (ingredientType != null) {
+                        storage.setIngredientType(ingredientType);
+                        ingredient = storage.createIngredient();
+                    }
+
+                    setTileData(x, y, storage, ingredient);
                 } else if (tileId == 4) {
-                    // Plate Storage - add plate
+                    // Plate Storage - plates are stored internally in PlateStorage stack
                     Station station = createStationForTile(tileId);
-                    Plate plate = new Plate();
-                    System.out.println("Placed Plate at PlateStorage (" + x + ", " + y + ")");
-                    setTileData(x, y, station, plate);
+                    System.out.println("Initialized PlateStorage at (" + x + ", " + y + ") with 4 plates");
+                    setTileData(x, y, station, null); // No item on tile - plates stored internally
                 } else if (tileId == 9) {
                     // Cooking Station - add utensil based on x position
                     Station station = createStationForTile(tileId);
@@ -315,6 +306,60 @@ public class GameMap {
         for (int y = 0; y < MAP_HEIGHT; y++) {
             for (int x = 0; x < MAP_WIDTH; x++) {
                 Item item = getItemAt(x, y);
+
+                // Special case: Draw plate on PlateStorage if it has plates
+                Station station = getStationAt(x, y);
+                if (station instanceof PlateStorage) {
+                    PlateStorage plateStorage = (PlateStorage) station;
+                    if (plateStorage.hasPlates()) {
+                        // Draw a plate image to indicate plates are available
+                        try {
+                            BufferedImage plateImage = ImageIO.read(getClass().getResourceAsStream("/items/kitchenUtensils/plate.png"));
+                            int itemSize = 48; // 48x48 pixels for plate
+                            int screenX = x * gp.tileSize + (gp.tileSize - itemSize) / 2;
+                            int screenY = y * gp.tileSize + (gp.tileSize - itemSize) / 2;
+                            g2.drawImage(plateImage, screenX, screenY, itemSize, itemSize, null);
+                        } catch (Exception e) {
+                            System.err.println("Failed to load plate image for PlateStorage rendering");
+                        }
+                    }
+                    // Don't render normal item if this is PlateStorage (item should be null anyway)
+                    continue;
+                }
+
+                // Special case: Draw ingredients on AssemblyStation
+                if (station instanceof AssemblyStation) {
+                    AssemblyStation assemblyStation = (AssemblyStation) station;
+                    java.util.List<items.food.Ingredient> ingredients = assemblyStation.getIngredients();
+
+                    if (!ingredients.isEmpty()) {
+                        int ingredientSize = gp.tileSize / 2;
+                        int spacing = 5; // Space between ingredients
+
+                        // Draw ingredients in a row or stacked
+                        for (int i = 0; i < ingredients.size() && i < 3; i++) { // Max 3 visible
+                            items.food.Ingredient ingredient = ingredients.get(i);
+                            if (ingredient.getImage() != null) {
+                                int offsetX = (i - 1) * spacing; // Slight horizontal offset
+                                int offsetY = i * spacing; // Slight vertical offset for stacking effect
+                                int screenX = x * gp.tileSize + (gp.tileSize - ingredientSize) / 2 + offsetX;
+                                int screenY = y * gp.tileSize + (gp.tileSize - ingredientSize) / 2 + offsetY;
+                                g2.drawImage(ingredient.getImage(), screenX, screenY, ingredientSize, ingredientSize, null);
+                            }
+                        }
+                    }
+
+                    // If there's also an item on the tile (dish after assembly), draw it
+                    if (item != null && item.getImage() != null) {
+                        int itemSize = gp.tileSize / 2;
+                        int screenX = x * gp.tileSize + (gp.tileSize - itemSize) / 2;
+                        int screenY = y * gp.tileSize + (gp.tileSize - itemSize) / 2;
+                        g2.drawImage(item.getImage(), screenX, screenY, itemSize, itemSize, null);
+                    }
+
+                    continue; // Skip normal item rendering
+                }
+
                 if (item != null && item.getImage() != null) {
                     // Kitchen utensils have different sizes
                     int itemSize;
@@ -330,6 +375,24 @@ public class GameMap {
                     int screenX = x * gp.tileSize + (gp.tileSize - itemSize) / 2;
                     int screenY = y * gp.tileSize + (gp.tileSize - itemSize) / 2;
                     g2.drawImage(item.getImage(), screenX, screenY, itemSize, itemSize, null);
+                    
+                    // If item is a Plate, draw the ingredient on top of it
+                    if (item instanceof Plate) {
+                        Plate plate = (Plate) item;
+                        if (!plate.getContents().isEmpty()) {
+                            items.Preparable content = plate.getContents().get(0);
+                            if (content instanceof Item) {
+                                Item ingredientItem = (Item) content;
+                                if (ingredientItem.getImage() != null) {
+                                    // Draw ingredient on top of plate (smaller, centered)
+                                    int ingredientSize = gp.tileSize / 3; // Smaller than normal ingredient
+                                    int ingredientX = x * gp.tileSize + (gp.tileSize - ingredientSize) / 2;
+                                    int ingredientY = y * gp.tileSize + (gp.tileSize - ingredientSize) / 2 - 5; // Slightly above center
+                                    g2.drawImage(ingredientItem.getImage(), ingredientX, ingredientY, ingredientSize, ingredientSize, null);
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -437,6 +500,16 @@ public class GameMap {
         if (data != null && data.item != null) {
             Item removedItem = data.item;
             data.item = null;
+
+            // Auto-respawn ingredient if this is an IngredientStorage tile
+            if (data.station instanceof IngredientStorage) {
+                IngredientStorage storage = (IngredientStorage) data.station;
+                Ingredient newIngredient = storage.createIngredient();
+                if (newIngredient != null) {
+                    data.item = newIngredient;
+                }
+            }
+
             return removedItem;
         }
         return null;

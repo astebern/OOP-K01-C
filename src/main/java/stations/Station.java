@@ -1,6 +1,6 @@
 package stations;
 
-public class Station {
+public abstract class Station {
     protected float progressPercent = 0.0f; // 0.0 to 100.0
     protected boolean isInProgress = false;
     protected boolean showProgressBar = false; // Controls visibility of progress bar
