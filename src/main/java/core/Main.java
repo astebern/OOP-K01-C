@@ -6,9 +6,9 @@ import javax.swing.*;
 
 public class Main {
 
-    @BetterComments(description = "Create Gamemaster", type ="method")
+    @BetterComments(description = "Get GameMaster singleton instance and start game", type ="method")
     public static void main(String[] args){
-        GameMaster master = new GameMaster();
+        GameMaster master = GameMaster.getInstance();
         master.main();
 
     }

@@ -327,6 +327,39 @@ public class GameMap {
                     continue;
                 }
 
+                // Special case: Draw ingredients on AssemblyStation
+                if (station instanceof AssemblyStation) {
+                    AssemblyStation assemblyStation = (AssemblyStation) station;
+                    java.util.List<items.food.Ingredient> ingredients = assemblyStation.getIngredients();
+
+                    if (!ingredients.isEmpty()) {
+                        int ingredientSize = gp.tileSize / 2;
+                        int spacing = 5; // Space between ingredients
+
+                        // Draw ingredients in a row or stacked
+                        for (int i = 0; i < ingredients.size() && i < 3; i++) { // Max 3 visible
+                            items.food.Ingredient ingredient = ingredients.get(i);
+                            if (ingredient.getImage() != null) {
+                                int offsetX = (i - 1) * spacing; // Slight horizontal offset
+                                int offsetY = i * spacing; // Slight vertical offset for stacking effect
+                                int screenX = x * gp.tileSize + (gp.tileSize - ingredientSize) / 2 + offsetX;
+                                int screenY = y * gp.tileSize + (gp.tileSize - ingredientSize) / 2 + offsetY;
+                                g2.drawImage(ingredient.getImage(), screenX, screenY, ingredientSize, ingredientSize, null);
+                            }
+                        }
+                    }
+
+                    // If there's also an item on the tile (dish after assembly), draw it
+                    if (item != null && item.getImage() != null) {
+                        int itemSize = gp.tileSize / 2;
+                        int screenX = x * gp.tileSize + (gp.tileSize - itemSize) / 2;
+                        int screenY = y * gp.tileSize + (gp.tileSize - itemSize) / 2;
+                        g2.drawImage(item.getImage(), screenX, screenY, itemSize, itemSize, null);
+                    }
+
+                    continue; // Skip normal item rendering
+                }
+
                 if (item != null && item.getImage() != null) {
                     // Kitchen utensils have different sizes
                     int itemSize;

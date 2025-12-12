@@ -4,6 +4,7 @@ import core.GamePanel;
 import core.KeyHandler;
 import items.Item;
 import map.GameMap;
+import stations.AssemblyStation;
 import stations.CookingStation;
 import stations.CuttingStation;
 import stations.PlateStorage;
@@ -453,15 +454,36 @@ public class Chef {
             }
             // Normal drop - tile is empty
             else if (existingItem == null) {
-                boolean success = gameMap.placeItemAt(targetX, targetY, this.inventory);
-                if (success) {
-                    System.out.println(id + " dropped " + this.inventory.getClass().getSimpleName() +
-                                     " at (" + targetX + ", " + targetY + ")");
-                    this.inventory = null;
-                    this.currentActions = Actions.DROPPINGDOWN;
-                    this.state = true;
+                // Special handling for AssemblyStation - ingredients go into the station, not on the tile
+                if (stationAtTile instanceof AssemblyStation) {
+                    if (this.inventory instanceof items.food.Ingredient) {
+                        AssemblyStation assemblyStation = (AssemblyStation) stationAtTile;
+                        items.food.Ingredient ingredient = (items.food.Ingredient) this.inventory;
+
+                        items.food.Dish dish = assemblyStation.addIngredient(ingredient, gameMap, targetX, targetY);
+
+                        this.inventory = null;
+                        this.currentActions = Actions.DROPPINGDOWN;
+                        this.state = true;
+
+                        if (dish != null) {
+                            System.out.println(id + " - " + dish.getName() + " was assembled!");
+                        }
+                    } else {
+                        System.out.println(id + " - AssemblyStation only accepts ingredients");
+                    }
                 } else {
-                    System.out.println(id + " failed to drop item");
+                    // Normal drop on other tiles
+                    boolean success = gameMap.placeItemAt(targetX, targetY, this.inventory);
+                    if (success) {
+                        System.out.println(id + " dropped " + this.inventory.getClass().getSimpleName() +
+                                         " at (" + targetX + ", " + targetY + ")");
+                        this.inventory = null;
+                        this.currentActions = Actions.DROPPINGDOWN;
+                        this.state = true;
+                    } else {
+                        System.out.println(id + " failed to drop item");
+                    }
                 }
             }
             // Tile has non-utensil item
