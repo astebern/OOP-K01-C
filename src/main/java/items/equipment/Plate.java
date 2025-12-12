@@ -8,11 +8,11 @@ public class Plate extends KitchenUtensil {
         this.isDirty = false;
     }
 
-    public boolean isDirty() {
+    public boolean getIsDirty() {
         return isDirty;
     }
 
-    public void setDirty(boolean dirty) {
+    public void setIsDirty(boolean dirty) {
         this.isDirty = dirty;
     }
 
