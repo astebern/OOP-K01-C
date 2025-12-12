@@ -32,52 +32,63 @@ public class StageMenu extends JPanel {
         int buttonWidth = 252;
         int buttonHeight = 104;
         int Y = 616;
+        
+        // Ambil data stage yang terbuka
+        int unlocked = gameMaster.getUnlockedStages();
 
-        // STAGE 1 button
-        stage1Button = createStageButton("", 87, Y, buttonWidth, buttonHeight);
+        // STAGE 1 (Selalu Buka)
+        stage1Button = createStageButton("1", 87, Y, buttonWidth, buttonHeight, true);
         stage1Button.addActionListener(e -> selectStage(1));
         add(stage1Button);
 
-        // STAGE 2 button
-        stage2Button = createStageButton("", 375, Y,buttonWidth, buttonHeight);
+        // STAGE 2 (Buka jika unlocked >= 2)
+        stage2Button = createStageButton("2", 375, Y,buttonWidth, buttonHeight, unlocked >= 2);
         stage2Button.addActionListener(e -> selectStage(2));
         add(stage2Button);
 
-        // STAGE 3 button
-        stage3Button = createStageButton("", 665, Y, buttonWidth, buttonHeight);
+        // STAGE 3 (Buka jika unlocked >= 3)
+        stage3Button = createStageButton("3", 665, Y, buttonWidth, buttonHeight, unlocked >= 3);
         stage3Button.addActionListener(e -> selectStage(3));
         add(stage3Button);
 
-        // STAGE 4 button
-        stage4Button = createStageButton("", 991, 665, buttonWidth, 60);
+        // STAGE 4 (Buka jika unlocked >= 4)
+        stage4Button = createStageButton("4", 991, 665, buttonWidth, 60, unlocked >= 4);
         stage4Button.addActionListener(e -> selectStage(4));
         add(stage4Button);
 
         // BACK button
-        backButton = createStageButton("", 45, 850, 183, 68);
+        backButton = createStageButton("", 45, 850, 183, 68, true);
         backButton.addActionListener(e -> goBack());
         add(backButton);
     }
 
-    @BetterComments(description = "Creates transparent stage selection buttons", type = "method")
-    private JButton createStageButton(String text, int x, int y, int width, int height) {
-        JButton button = new JButton(text);
+    @BetterComments(description = "Creates transparent stage selection buttons with lock logic", type = "method")
+    private JButton createStageButton(String text, int x, int y, int width, int height, boolean isUnlocked) {
+        JButton button = new JButton(isUnlocked ? "" : "LOCKED"); // Teks 'LOCKED' jika terkunci
         button.setBounds(x, y, width, height);
         button.setContentAreaFilled(false);
-        button.setBorderPainted(false);
+        
+        if (isUnlocked) {
+            button.setBorderPainted(false);
+            button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            button.setEnabled(true);
+        } else {
+            // Visualisasi tombol terkunci
+            button.setBorderPainted(true);
+            button.setBackground(new Color(50, 50, 50, 180));
+            button.setForeground(Color.RED);
+            button.setOpaque(true);
+            button.setEnabled(false); // Disable klik
+        }
+        
         button.setFocusPainted(false);
-        button.setOpaque(false);
-        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-
         return button;
     }
 
     @BetterComments(description = "Handle stage selection and start the game", type = "method")
     private void selectStage(int stageNumber) {
         System.out.println("Stage " + stageNumber + " selected!");
-        // You can pass the stage number to GameMaster if needed
-        gameMaster.startGame();
+        gameMaster.startGame(stageNumber); // Pass stage number
     }
 
     @BetterComments(description = "Go back to start menu", type = "method")
@@ -89,22 +100,16 @@ public class StageMenu extends JPanel {
     private void loadBackgroundImage() {
         try {
             backgroundImage = ImageIO.read(getClass().getResourceAsStream("/stage_background.png"));
-            System.out.println("Stage background image loaded successfully!");
         } catch (IOException | IllegalArgumentException e) {
-            System.out.println("Stage background image not found. Using solid color background.");
-            System.out.println("Place your image at: src/main/resources/stage_background.png");
-            System.out.println("Recommended size: " + screenWidth + "x" + screenHeight + " pixels");
-            backgroundImage = null;
+            e.printStackTrace();
         }
     }
 
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-
         if (backgroundImage != null) {
             g.drawImage(backgroundImage, 0, 0, screenWidth, screenHeight, this);
         }
     }
 }
-

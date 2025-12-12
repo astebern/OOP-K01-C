@@ -16,12 +16,19 @@ public class GameMaster {
     private StartMenu startMenu;
     private StageMenu stageMenu;
     private HowToPlayMenu howToPlayMenu;
+    
+    // [BARU] Atribut untuk Order & Stage System
+    private OrderManager orderManager;
+    private int unlockedStages = 1; // Stage yang terbuka (default 1)
+    private int currentStagePlayed = 1;
 
     @BetterComments(description="Singleton pattern used to create GameMaster Object",type="constructor")
     public GameMaster(){
         this.isGameRunning = true;
         this.chefList = new ArrayList<>();
         this.activeChefIndex = 0;
+        // [BARU] Inisialisasi OrderManager dengan referensi 'this'
+        this.orderManager = new OrderManager(this);
     }
 
     @BetterComments(description="creates game window",type="method")
@@ -80,7 +87,10 @@ public class GameMaster {
     }
 
     @BetterComments(description="Replace the stage menu and initialize the main gameplay panel",type="method")
-    public void startGame(){
+    // [UPDATE] Menerima parameter stageNumber
+    public void startGame(int stageNumber){
+        this.currentStagePlayed = stageNumber;
+        
         frame.getContentPane().removeAll();
 
         gamePanel = new GamePanel(this);
@@ -90,6 +100,9 @@ public class GameMaster {
         frame.repaint();
         frame.pack();
         frame.setLocationRelativeTo(null);
+        
+        // [BARU] Load konfigurasi stage yang dipilih
+        orderManager.loadStage(stageNumber);
 
         gamePanel.startGameThread();
         gamePanel.requestFocusInWindow();
@@ -101,6 +114,25 @@ public class GameMaster {
             activeChefIndex = (activeChefIndex + 1) % chefList.size();
             System.out.println("Switched to Chef " + (activeChefIndex + 1));
         }
+    }
+    
+    // [BARU] Logika saat Stage Selesai (Menang)
+    public void levelCleared() {
+        System.out.println("STAGE CLEARED! Moving to Stage Select...");
+        JOptionPane.showMessageDialog(frame, "Stage Cleared!", "Success", JOptionPane.INFORMATION_MESSAGE);
+        
+        // Buka stage berikutnya jika belum terbuka
+        if (currentStagePlayed == unlockedStages && unlockedStages < 4) {
+            unlockedStages++;
+        }
+        showStageMenu();
+    }
+
+    // [BARU] Logika saat Stage Gagal (Waktu Habis)
+    public void levelFailed() {
+        System.out.println("STAGE FAILED! Try Again.");
+        JOptionPane.showMessageDialog(frame, "Stage Failed! Time's Up.", "Failed", JOptionPane.WARNING_MESSAGE);
+        showStageMenu();
     }
 
     //Getter and Setter Functions
@@ -126,10 +158,13 @@ public class GameMaster {
         }
         return chefList.get(activeChefIndex);
     }
-
-
-
-
-
+    
+    // [BARU] Getter untuk sistem Stage & Order
+    public OrderManager getOrderManager() {
+        return orderManager;
+    }
+    
+    public int getUnlockedStages() {
+        return unlockedStages;
+    }
 }
-

@@ -8,59 +8,38 @@ public class Order {
     private Recipe recipe;
     private int reward;
     private int penalty;
-    private int timeLimit;
+    private int maxTime;      // Waktu awal (misal 60 detik)
+    private float currentTimeout; // Waktu yang tersisa (float untuk presisi)
 
     public Order(int posisiOrder, Recipe recipe, int reward, int penalty, int timeLimit) {
         this.posisiOrder = posisiOrder;
         this.recipe = recipe;
         this.reward = reward;
         this.penalty = penalty;
-        this.timeLimit = timeLimit;
-    }
-    
-    public int getPosisiOrder() {
-        return posisiOrder;
+        this.maxTime = timeLimit * 60; // Asumsi input frame/tick (misal 60 tick = 1 detik)
+        this.currentTimeout = this.maxTime;
     }
 
-    public void setPosisiOrder(int newPos) {
-        this.posisiOrder = newPos;
+    // --- LOGIC BARU: Update Waktu ---
+    public void decreaseTime() {
+        if (currentTimeout > 0) {
+            currentTimeout--; 
+        }
+    }
+
+    public boolean isExpired() {
+        return currentTimeout <= 0;
+    }
+
+    // Untuk GUI Bar: Mengembalikan persentase sisa waktu (0.0 - 1.0)
+    public float getTimeProgress() {
+        return currentTimeout / (float) maxTime;
     }
 
     public Recipe getRecipe() {
         return recipe;
     }
 
-    public void setRecipe(Recipe newRecipe) {
-        this.recipe = newRecipe;
-    }
-
-    public int getReward() {
-        return reward;
-    }
-
-    public void setReward(int newReward) {
-        this.reward = newReward;
-    }
-
-    public int getPenalty() {
-        return penalty;
-    }
-
-    public void setPenalty(int penalty) {
-        this.penalty = penalty;
-    }
-
-    public boolean compareDishAndRecipe(Dish dish, Recipe recipe) {
-        return recipe.validateDish(dish);
-    }
-
-    public boolean isExpired(){
-        //kalau waktunya > waktu yg ditentukan 
-        return false;
-    }
-
+    public int getReward() { return reward; }
+    public int getPenalty() { return penalty; }
 }
-
-
-
-
