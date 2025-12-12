@@ -238,6 +238,24 @@ public class Chef {
                             System.out.println(id + " picked up item from utensil - cooking stopped");
                         }
 
+                        // If ingredient is still in COOKING state (picked up before 12 seconds),
+                        // revert it back to CHOPPED (or RAW for pasta) so it can be cooked again
+                        if (ingredientInside instanceof items.food.Ingredient) {
+                            items.food.Ingredient ingredient = (items.food.Ingredient) ingredientInside;
+                            if (ingredient.getState() == items.food.IngredientState.COOKING) {
+                                // For pasta (boiled), revert to RAW. For fried items, revert to CHOPPED
+                                if (ingredient.getName().equalsIgnoreCase("Pasta")) {
+                                    ingredient.setState(items.food.IngredientState.RAW);
+                                    System.out.println(id + " - " + ingredient.getName() +
+                                                     " reverted to RAW (not fully cooked)");
+                                } else {
+                                    ingredient.setState(items.food.IngredientState.CHOPPED);
+                                    System.out.println(id + " - " + ingredient.getName() +
+                                                     " reverted to CHOPPED (not fully cooked)");
+                                }
+                            }
+                        }
+
                         utensil.getContents().remove(ingredientInside);
                         utensil.updateCookingImage(); // Reset to default utensil image
                         this.inventory = (Item) ingredientInside;

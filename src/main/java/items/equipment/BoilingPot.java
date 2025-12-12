@@ -107,9 +107,15 @@ public class BoilingPot extends KitchenUtensil implements CookingDevice {
 
     @Override
     protected String getCookingImagePath(Ingredient ingredient) {
-        // Map ingredient names to cooking image filenames
         String name = ingredient.getName().toLowerCase();
+        IngredientState state = ingredient.getState();
 
+        // If burned, show the burned ingredient image
+        if (state == IngredientState.BURNED) {
+            return "/items/ingredients/" + name + "/" + name + "_burned.png";
+        }
+
+        // Otherwise show cooking image
         if (name.equals("pasta")) {
             return "/items/cooking/boilPasta.png";
         }

@@ -32,6 +32,11 @@ public class Ingredient extends Item implements Preparable {
                 case CHOPPED:
                     stateStr = "chopped";
                     break;
+                case COOKING:
+                    // During cooking, ingredient is in utensil (not visible)
+                    // Use chopped image as fallback if ingredient is picked up during cooking
+                    stateStr = "chopped";
+                    break;
                 case COOKED:
                     stateStr = "cooked";
                     break;
