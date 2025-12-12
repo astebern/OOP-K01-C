@@ -163,7 +163,6 @@ public class Chef {
         }
         g2.drawImage(image,this.position.getX(),this.position.getY(),gp.tileSize,gp.tileSize,null);
 
-        // Draw inventory item above chef if carrying something
         if (inventory != null && inventory.getImage() != null) {
             int itemSize = gp.tileSize / 2;
             int itemX = this.position.getX() + (gp.tileSize - itemSize) / 2;

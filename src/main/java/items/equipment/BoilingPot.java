@@ -3,6 +3,8 @@ package items.equipment;
 import items.Preparable;
 import items.food.Ingredient;
 import items.food.IngredientState;
+import javax.imageio.ImageIO;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,6 +22,20 @@ public class BoilingPot extends KitchenUtensil implements CookingDevice {
         this.acceptableNames = new ArrayList<>();
         acceptableNames.add("Pasta");
 
+        loadImage();
+    }
+
+    private void loadImage() {
+        try {
+            String path = "/items/kitchenUtensils/boiling_pot.png";
+            this.image = ImageIO.read(getClass().getResourceAsStream(path));
+        } catch (IOException e) {
+            System.err.println("Failed to load image for BoilingPot");
+            e.printStackTrace();
+        } catch (Exception e) {
+            System.err.println("Error loading image for BoilingPot");
+            e.printStackTrace();
+        }
     }
 
     @Override

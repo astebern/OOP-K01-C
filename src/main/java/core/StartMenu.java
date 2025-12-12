@@ -38,25 +38,7 @@ public class StartMenu extends JPanel {
 
         // HOW TO PLAY button
         howToPlayButton = createTransparentButton(centerX, 388, buttonWidth, buttonHeight);
-        howToPlayButton.addActionListener(e -> JOptionPane.showMessageDialog(this,
-            "=== HOW TO PLAY ===\n\n" +
-            "CONTROLS:\n" +
-            "• WASD - Move your chef\n" +
-            "• E - Interact with stations\n" +
-            "• TAB - Switch between chefs\n\n" +
-            "OBJECTIVE:\n" +
-            "• Prepare food orders\n" +
-            "• Use different stations to cook\n" +
-            "• Serve customers quickly!\n\n" +
-            "STATIONS:\n" +
-            "• Ingredient Storage - Get ingredients\n" +
-            "• Cutting Station - Chop ingredients\n" +
-            "• Cooking Station - Cook food\n" +
-            "• Assembly Station - Put dishes together\n" +
-            "• Serving Counter - Deliver orders\n" +
-            "• Washing Station - Clean dishes\n" +
-            "• Trash Station - Dispose items",
-            "How To Play", JOptionPane.INFORMATION_MESSAGE));
+        howToPlayButton.addActionListener(e -> showHowToPlay());
         add(howToPlayButton);
 
         // EXIT button
@@ -80,6 +62,11 @@ public class StartMenu extends JPanel {
     @BetterComments(description = "Transition from StartMenu to StageMenu" ,type="method")
     private void startGame() {
         gameMaster.showStageMenu();
+    }
+
+    @BetterComments(description = "Transition from StartMenu to HowToPlayMenu" ,type="method")
+    private void showHowToPlay() {
+        gameMaster.showHowToPlayMenu();
     }
 
     @BetterComments(description = "loads background image" , type="method")

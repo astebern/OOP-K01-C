@@ -3,6 +3,8 @@ package items.equipment;
 import items.Preparable;
 import items.food.Ingredient;
 import items.food.IngredientState;
+import javax.imageio.ImageIO;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,6 +24,21 @@ public class FryingPan extends KitchenUtensil implements CookingDevice {
         acceptableNames.add("Ikan");
         acceptableNames.add("Udang");
         acceptableNames.add("Tomat");
+
+        loadImage();
+    }
+
+    private void loadImage() {
+        try {
+            String path = "/items/kitchenUtensils/frying_pan.png";
+            this.image = ImageIO.read(getClass().getResourceAsStream(path));
+        } catch (IOException e) {
+            System.err.println("Failed to load image for FryingPan");
+            e.printStackTrace();
+        } catch (Exception e) {
+            System.err.println("Error loading image for FryingPan");
+            e.printStackTrace();
+        }
     }
 
     @Override

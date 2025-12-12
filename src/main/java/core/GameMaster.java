@@ -15,6 +15,7 @@ public class GameMaster {
     private JFrame frame;
     private StartMenu startMenu;
     private StageMenu stageMenu;
+    private HowToPlayMenu howToPlayMenu;
 
     @BetterComments(description="Singleton pattern used to create GameMaster Object",type="constructor")
     public GameMaster(){
@@ -58,6 +59,19 @@ public class GameMaster {
 
         startMenu = new StartMenu(this);
         frame.add(startMenu);
+
+        frame.revalidate();
+        frame.repaint();
+        frame.pack();
+        frame.setLocationRelativeTo(null);
+    }
+
+    @BetterComments(description="Show how to play menu",type="method")
+    public void showHowToPlayMenu(){
+        frame.getContentPane().removeAll();
+
+        howToPlayMenu = new HowToPlayMenu(this);
+        frame.add(howToPlayMenu);
 
         frame.revalidate();
         frame.repaint();

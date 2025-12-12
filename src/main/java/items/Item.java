@@ -12,11 +12,6 @@ public abstract class Item {
     public void setImage(BufferedImage image) {
         this.image = image;
     }
-
-    /**
-     * Determines if this item can be picked up and moved by the chef.
-     * By default, all items are portable unless explicitly overridden.
-     */
     public boolean isPortable() {
         return true;
     }

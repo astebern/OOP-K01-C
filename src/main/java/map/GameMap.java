@@ -4,6 +4,7 @@ import core.GamePanel;
 import items.Item;
 import items.equipment.BoilingPot;
 import items.equipment.FryingPan;
+import items.equipment.Plate;
 import items.food.Ingredient;
 import stations.*;
 import utils.BetterComments;
@@ -190,16 +191,22 @@ public class GameMap {
                     }
 
                     setTileData(x, y, station, ingredient);
+                } else if (tileId == 4) {
+                    // Plate Storage - add plate
+                    Station station = createStationForTile(tileId);
+                    Plate plate = new Plate();
+                    System.out.println("Placed Plate at PlateStorage (" + x + ", " + y + ")");
+                    setTileData(x, y, station, plate);
                 } else if (tileId == 9) {
                     // Cooking Station - add utensil based on x position
                     Station station = createStationForTile(tileId);
                     Item utensil = null;
                     
-                    // Cooking stations at x=0 get BoilingPot, others get FryingPan
-                    if (x == 0) {
+                    // Cooking stations at x=2 or x=3 get BoilingPot, stations at x=13 get FryingPan
+                    if (x == 2 || x == 3) {
                         utensil = new BoilingPot();
                         System.out.println("Placed BoilingPot at CookingStation (" + x + ", " + y + ")");
-                    } else {
+                    } else if (x == 13) {
                         utensil = new FryingPan();
                         System.out.println("Placed FryingPan at CookingStation (" + x + ", " + y + ")");
                     }
@@ -304,12 +311,22 @@ public class GameMap {
             }
         }
 
-        // Draw items on top of tiles (centered, half tile size)
+        // Draw items on top of tiles (centered, size depends on item type)
         for (int y = 0; y < MAP_HEIGHT; y++) {
             for (int x = 0; x < MAP_WIDTH; x++) {
                 Item item = getItemAt(x, y);
                 if (item != null && item.getImage() != null) {
-                    int itemSize = gp.tileSize / 2;
+                    // Kitchen utensils have different sizes
+                    int itemSize;
+                    if (item instanceof BoilingPot) {
+                        itemSize = 80; // 80x80 pixels for boiling pot
+                    } else if (item instanceof FryingPan) {
+                        itemSize = 64; // 64x64 pixels for frying pan
+                    } else if (item instanceof Plate) {
+                        itemSize = 48; // 48x48 pixels for plate
+                    } else {
+                        itemSize = gp.tileSize / 2; // Half tile size for ingredients
+                    }
                     int screenX = x * gp.tileSize + (gp.tileSize - itemSize) / 2;
                     int screenY = y * gp.tileSize + (gp.tileSize - itemSize) / 2;
                     g2.drawImage(item.getImage(), screenX, screenY, itemSize, itemSize, null);
