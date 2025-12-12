@@ -8,38 +8,64 @@ public class Order {
     private Recipe recipe;
     private int reward;
     private int penalty;
-    private int maxTime;      // Waktu awal (misal 60 detik)
-    private float currentTimeout; // Waktu yang tersisa (float untuk presisi)
+    
+    // Atribut Waktu (Timer)
+    private int maxTime;          // Waktu total (dalam frame/tick)
+    private float currentTimeout; // Waktu tersisa
 
     public Order(int posisiOrder, Recipe recipe, int reward, int penalty, int timeLimit) {
         this.posisiOrder = posisiOrder;
         this.recipe = recipe;
         this.reward = reward;
         this.penalty = penalty;
-        this.maxTime = timeLimit * 60; // Asumsi input frame/tick (misal 60 tick = 1 detik)
+        
+        // Konversi detik ke frame (asumsi 60 FPS)
+        // Jika timeLimit 60 detik -> 3600 frame
+        this.maxTime = timeLimit * 60; 
         this.currentTimeout = this.maxTime;
     }
+    
+    // --- METHOD PENTING YANG HILANG SEBELUMNYA ---
+    public int getPosisiOrder() {
+        return posisiOrder;
+    }
 
-    // --- LOGIC BARU: Update Waktu ---
+    public void setPosisiOrder(int newPos) {
+        this.posisiOrder = newPos;
+    }
+    // ---------------------------------------------
+
+    public Recipe getRecipe() {
+        return recipe;
+    }
+
+    public int getReward() {
+        return reward;
+    }
+
+    public int getPenalty() {
+        return penalty;
+    }
+
+    // --- LOGIKA TIMER ---
+    
+    // Dipanggil setiap frame (tick) untuk mengurangi waktu
     public void decreaseTime() {
         if (currentTimeout > 0) {
             currentTimeout--; 
         }
     }
 
-    public boolean isExpired() {
+    public boolean isExpired(){
         return currentTimeout <= 0;
     }
 
-    // Untuk GUI Bar: Mengembalikan persentase sisa waktu (0.0 - 1.0)
+    // Mengembalikan persentase sisa waktu (0.0 sampai 1.0) untuk GUI Bar
     public float getTimeProgress() {
         return currentTimeout / (float) maxTime;
     }
 
-    public Recipe getRecipe() {
-        return recipe;
+    public boolean compareDishAndRecipe(Dish dish, Recipe recipe) {
+        return recipe.validateDish(dish);
     }
-
-    public int getReward() { return reward; }
-    public int getPenalty() { return penalty; }
 }

@@ -53,12 +53,17 @@ public class GamePanel extends JPanel implements Runnable{
         gameThread = new Thread(this);
         gameThread.start();
     }
+    public void stopGameThread() {
+        gameThread = null;
+    }
 
     @Override
     public void run() {
         double drawInterval = 1000000000 / fps;
         double nextDrawTime = System.nanoTime() + drawInterval;
-        while (gameThread != null) {
+        
+        // Loop akan berhenti jika gameThread di-set menjadi null
+        while (gameThread != null) { 
             update();
             repaint();
             try {

@@ -88,11 +88,12 @@ public class GameMaster {
 
     @BetterComments(description="Replace the stage menu and initialize the main gameplay panel",type="method")
     // [UPDATE] Menerima parameter stageNumber
-    public void startGame(int stageNumber){
+public void startGame(int stageNumber){
         this.currentStagePlayed = stageNumber;
         
         frame.getContentPane().removeAll();
 
+        // Pastikan gamePanel baru dibuat bersih
         gamePanel = new GamePanel(this);
         frame.add(gamePanel);
 
@@ -101,7 +102,6 @@ public class GameMaster {
         frame.pack();
         frame.setLocationRelativeTo(null);
         
-        // [BARU] Load konfigurasi stage yang dipilih
         orderManager.loadStage(stageNumber);
 
         gamePanel.startGameThread();
@@ -116,20 +116,28 @@ public class GameMaster {
         }
     }
     
-    // [BARU] Logika saat Stage Selesai (Menang)
     public void levelCleared() {
+        // Matikan game loop dulu agar tidak jalan di background
+        if (gamePanel != null) {
+            gamePanel.stopGameThread();
+        }
+
         System.out.println("STAGE CLEARED! Moving to Stage Select...");
         JOptionPane.showMessageDialog(frame, "Stage Cleared!", "Success", JOptionPane.INFORMATION_MESSAGE);
         
-        // Buka stage berikutnya jika belum terbuka
         if (currentStagePlayed == unlockedStages && unlockedStages < 4) {
             unlockedStages++;
         }
         showStageMenu();
     }
 
-    // [BARU] Logika saat Stage Gagal (Waktu Habis)
+    // [UPDATE] Tambahkan stopGameThread()
     public void levelFailed() {
+        // PENTING: Matikan thread SEBELUM atau SAAT memunculkan dialog
+        if (gamePanel != null) {
+            gamePanel.stopGameThread();
+        }
+
         System.out.println("STAGE FAILED! Try Again.");
         JOptionPane.showMessageDialog(frame, "Stage Failed! Time's Up.", "Failed", JOptionPane.WARNING_MESSAGE);
         showStageMenu();
