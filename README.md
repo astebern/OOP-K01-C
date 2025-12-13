@@ -86,10 +86,10 @@ src/main/java
 
 ## 👥 Authors
 
-18223019	A. Nurul Aqeela Amin
-18224051	Belva Charissa Putri Have
-18224011	Satria Guna Darma
-18224031	Daniel Arrigo Manurung
+18223019	A. Nurul Aqeela Amin  
+18224051	Belva Charissa Putri Have  
+18224011	Satria Guna Darma  
+18224031	Daniel Arrigo Manurung  
 
 ---
 *Created for Tugas Besar IF2010 - Object-Oriented Programming Course.*

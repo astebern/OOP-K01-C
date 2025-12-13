@@ -37,6 +37,7 @@ public class Chef {
     public BufferedImage up1,up2,down1,down2,left1,left2,left3,right1,right2,right3;
     private int spriteCounter = 0;
     private int spriteNum = 1;
+    private String skinFolder;
 
     // Station interaction tracking
     private Station activeStation = null;
@@ -44,8 +45,9 @@ public class Chef {
     private int activeStationY = -1;
 
     @BetterComments(description = "Initializes a chef character at the given position",type="constructor")
-    public Chef(GamePanel gp, KeyHandler keyH, GameMap gameMap, int x, int y) {
+public Chef(GamePanel gp, KeyHandler keyH, GameMap gameMap, int x, int y, String skinFolder) {
         // TODO: Name
+        this.skinFolder = skinFolder; // Simpan nama folder
         this.inventory = null;
         this.currentActions = Actions.IDLE;
         this.state = true;
@@ -56,23 +58,23 @@ public class Chef {
         this.position = new Position(x, y);
         this.speed = 7;
         this.direction = Direction.DOWN;
-        getImage();
+        getImage(); // Panggil getImage setelah skinFolder diset
         chef_num++;
     }
 
     @BetterComments(description = "Loads the chef's directional sprite images from the resources folder", type = "method")
-    public void getImage() {
+public void getImage() {
         try {
-            up1 = ImageIO.read(getClass().getResourceAsStream("/items/player/up1.png"));
-            up2 = ImageIO.read(getClass().getResourceAsStream("/items/player/up2.png"));
-            down1 = ImageIO.read(getClass().getResourceAsStream("/items/player/down1.png"));
-            down2 = ImageIO.read(getClass().getResourceAsStream("/items/player/down2.png"));
-            left1 = ImageIO.read(getClass().getResourceAsStream("/items/player/left1.png"));
-            left2 = ImageIO.read(getClass().getResourceAsStream("/items/player/left2.png"));
-            left3 = ImageIO.read(getClass().getResourceAsStream("/items/player/left3.png"));
-            right1 = ImageIO.read(getClass().getResourceAsStream("/items/player/right1.png"));
-            right2 = ImageIO.read(getClass().getResourceAsStream("/items/player/right2.png"));
-            right3 = ImageIO.read(getClass().getResourceAsStream("/items/player/right3.png"));
+            up1 = ImageIO.read(getClass().getResourceAsStream("/items/" + skinFolder + "/up1.png"));
+            up2 = ImageIO.read(getClass().getResourceAsStream("/items/" + skinFolder + "/up2.png"));
+            down1 = ImageIO.read(getClass().getResourceAsStream("/items/" + skinFolder + "/down1.png"));
+            down2 = ImageIO.read(getClass().getResourceAsStream("/items/" + skinFolder + "/down2.png"));
+            left1 = ImageIO.read(getClass().getResourceAsStream("/items/" + skinFolder + "/left1.png"));
+            left2 = ImageIO.read(getClass().getResourceAsStream("/items/" + skinFolder + "/left2.png"));
+            left3 = ImageIO.read(getClass().getResourceAsStream("/items/" + skinFolder + "/left3.png"));
+            right1 = ImageIO.read(getClass().getResourceAsStream("/items/" + skinFolder + "/right1.png"));
+            right2 = ImageIO.read(getClass().getResourceAsStream("/items/" + skinFolder + "/right2.png"));
+            right3 = ImageIO.read(getClass().getResourceAsStream("/items/" + skinFolder + "/right3.png"));
         } catch (IOException e) {
             e.printStackTrace();
         }
