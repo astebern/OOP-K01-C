@@ -51,8 +51,9 @@ public class Ingredient extends Item implements Preparable {
                     break;
                 case COOKED:
                     if (nameLower.equals("pasta")) {
-                        // Pasta cooked state uses special "pasta.png" image
-                        stateStr = "cooked";
+                        // Pasta cooked state uses "pasta.png" directly (not pasta_cooked.png)
+                        this.image = ImageIO.read(getClass().getResourceAsStream("/items/ingredients/pasta/pasta.png"));
+                        return; // Exit early, skip the normal path logic
                     } else {
                         stateStr = "cooked";
                     }

@@ -21,6 +21,7 @@ public class OrderManager {
     private boolean gameOver;
     private String gameOverReason;
     private static final int MAX_FAILED_ORDERS = 3;
+    private boolean stageSuccess; // NEW: Track if stage was completed successfully
 
     private long lastSpawnTime;
     private static final long SPAWN_INTERVAL = 15000; 
@@ -29,6 +30,10 @@ public class OrderManager {
     private long stageStartTime;
     private long stageTimeLimit; // in milliseconds
     private static final long DEFAULT_STAGE_TIME = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+    // Target score per stage
+    private int targetScore;
+    private static final int DEFAULT_TARGET_SCORE = 500; // Default target for stage
 
     @BetterComments(description="Initializes the order manager with random orders", type="constructor")
     public OrderManager() {
@@ -41,15 +46,20 @@ public class OrderManager {
         this.lastUpdateTime = System.currentTimeMillis();
         this.gameOver = false;
         this.gameOverReason = "";
+        this.stageSuccess = false; // Initialize as not successful yet
 
         // Initialize stage timer
         this.stageTimeLimit = DEFAULT_STAGE_TIME;
         this.stageStartTime = System.currentTimeMillis();
         this.lastSpawnTime = System.currentTimeMillis();
 
+        // Initialize target score
+        this.targetScore = DEFAULT_TARGET_SCORE;
+
         // Generate initial orders
         generateNewOrder(0); 
         System.out.println("OrderManager: Initial order generated.");
+        System.out.println("OrderManager: Target Score = " + targetScore);
     }
 
     @BetterComments(description="Generates a new random order from available recipes", type="method")
@@ -115,8 +125,17 @@ public class OrderManager {
         long elapsedTime = currentTime - stageStartTime;
         if (elapsedTime >= stageTimeLimit) {
             gameOver = true;
-            gameOverReason = "Time's up! Stage time limit reached (5 minutes)";
-            System.out.println("OrderManager: GAME OVER - " + gameOverReason);
+
+            // Check if target score was reached
+            if (score >= targetScore) {
+                stageSuccess = true;
+                gameOverReason = "Stage Complete! You reached the target score of " + targetScore + "!";
+                System.out.println("OrderManager: STAGE SUCCESS - " + gameOverReason);
+            } else {
+                stageSuccess = false;
+                gameOverReason = "Time's up! Target not reached. You scored " + score + "/" + targetScore;
+                System.out.println("OrderManager: STAGE FAILED - " + gameOverReason);
+            }
             return;
         }
 
@@ -238,6 +257,22 @@ public class OrderManager {
     @BetterComments(description="Gets total stage time limit in seconds", type="method")
     public int getStageTimeLimit() {
         return (int)(stageTimeLimit / 1000);
+    }
+
+    @BetterComments(description="Gets the target score for this stage", type="method")
+    public int getTargetScore() {
+        return targetScore;
+    }
+
+    @BetterComments(description="Checks if stage was completed successfully", type="method")
+    public boolean isStageSuccess() {
+        return stageSuccess;
+    }
+
+    @BetterComments(description="Sets custom target score for stage", type="method")
+    public void setTargetScore(int target) {
+        this.targetScore = target;
+        System.out.println("OrderManager: Target score set to " + target);
     }
 }
 

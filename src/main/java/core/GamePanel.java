@@ -198,12 +198,23 @@ public void run() {
         g2.setColor(new Color(0, 0, 0, 180));
         g2.fillRect(0, 0, screenWidth, screenHeight);
 
-        // Game Over title
-        g2.setColor(Color.RED);
-        g2.setFont(new Font("Arial", Font.BOLD, 60));
-        String gameOverText = "GAME OVER";
-        int titleWidth = g2.getFontMetrics().stringWidth(gameOverText);
-        g2.drawString(gameOverText, (screenWidth - titleWidth) / 2, screenHeight / 2 - 100);
+        // Check if stage was successful
+        boolean stageSuccess = orderManager.isStageSuccess();
+
+        // Title - different based on success/failure
+        if (stageSuccess) {
+            g2.setColor(new Color(50, 255, 50)); // Bright green
+            g2.setFont(new Font("Arial", Font.BOLD, 60));
+            String successText = "STAGE COMPLETE!";
+            int titleWidth = g2.getFontMetrics().stringWidth(successText);
+            g2.drawString(successText, (screenWidth - titleWidth) / 2, screenHeight / 2 - 100);
+        } else {
+            g2.setColor(Color.RED);
+            g2.setFont(new Font("Arial", Font.BOLD, 60));
+            String gameOverText = "STAGE FAILED";
+            int titleWidth = g2.getFontMetrics().stringWidth(gameOverText);
+            g2.drawString(gameOverText, (screenWidth - titleWidth) / 2, screenHeight / 2 - 100);
+        }
 
         // Reason
         g2.setColor(Color.WHITE);
@@ -214,7 +225,7 @@ public void run() {
 
         // Final stats panel
         int panelWidth = 400;
-        int panelHeight = 250;
+        int panelHeight = 300; // Increased height for target score
         int panelX = (screenWidth - panelWidth) / 2;
         int panelY = screenHeight / 2 + 20;
 
@@ -225,21 +236,39 @@ public void run() {
         g2.drawRoundRect(panelX, panelY, panelWidth, panelHeight, 15, 15);
 
         // Stats
-        g2.setColor(Color.YELLOW);
+        if (stageSuccess) {
+            g2.setColor(new Color(50, 255, 50)); // Green for success
+        } else {
+            g2.setColor(Color.YELLOW);
+        }
         g2.setFont(new Font("Arial", Font.BOLD, 28));
         g2.drawString("FINAL STATS", panelX + 110, panelY + 40);
 
         g2.setColor(Color.WHITE);
         g2.setFont(new Font("Arial", Font.PLAIN, 22));
-        g2.drawString("Final Score: " + orderManager.getScore(), panelX + 30, panelY + 85);
-        g2.drawString("Final Money: $" + orderManager.getMoney(), panelX + 30, panelY + 120);
-        g2.drawString("Orders Completed: " + orderManager.getOrdersCompleted(), panelX + 30, panelY + 155);
-        g2.drawString("Orders Failed: " + orderManager.getOrdersFailed(), panelX + 30, panelY + 190);
+
+        // Show target score
+        g2.drawString("Target Score: " + orderManager.getTargetScore(), panelX + 30, panelY + 85);
+
+        // Highlight final score based on success
+        if (stageSuccess) {
+            g2.setColor(new Color(50, 255, 50));
+        } else {
+            g2.setColor(Color.RED);
+        }
+        g2.setFont(new Font("Arial", Font.BOLD, 24));
+        g2.drawString("Final Score: " + orderManager.getScore(), panelX + 30, panelY + 120);
+
+        g2.setColor(Color.WHITE);
+        g2.setFont(new Font("Arial", Font.PLAIN, 22));
+        g2.drawString("Final Money: $" + orderManager.getMoney(), panelX + 30, panelY + 155);
+        g2.drawString("Orders Completed: " + orderManager.getOrdersCompleted(), panelX + 30, panelY + 190);
+        g2.drawString("Orders Failed: " + orderManager.getOrdersFailed(), panelX + 30, panelY + 225);
 
         // Instruction to exit
         g2.setColor(Color.LIGHT_GRAY);
         g2.setFont(new Font("Arial", Font.ITALIC, 18));
-        String instruction = "Press ESC to exit";
+        String instruction = "Press ESC to return to menu";
         int instWidth = g2.getFontMetrics().stringWidth(instruction);
         g2.drawString(instruction, (screenWidth - instWidth) / 2, screenHeight - 50);
     }
@@ -378,7 +407,18 @@ public void run() {
         // Stats
         g2.setColor(Color.WHITE);
         g2.setFont(new Font("Arial", Font.PLAIN, 14));
-        g2.drawString("Score: " + orderManager.getScore(), statsX + 15, statsY + 50);
+
+        // Show current score vs target score
+        int currentScore = orderManager.getScore();
+        int targetScore = orderManager.getTargetScore();
+        if (currentScore >= targetScore) {
+            g2.setColor(new Color(50, 255, 50)); // Green if target reached
+        } else {
+            g2.setColor(Color.WHITE);
+        }
+        g2.drawString("Score: " + currentScore + "/" + targetScore, statsX + 15, statsY + 50);
+
+        g2.setColor(Color.WHITE);
         g2.drawString("Money: $" + orderManager.getMoney(), statsX + 15, statsY + 75);
         g2.drawString("Completed: " + orderManager.getOrdersCompleted(), statsX + 15, statsY + 100);
 

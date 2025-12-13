@@ -51,6 +51,12 @@ public class Plate extends KitchenUtensil {
         this.isDirty = true;
     }
 
+    public void clean() {
+        this.isDirty = false;
+        this.contents.clear();
+        loadImage(); // Reload image to show clean plate
+    }
+
     @Override
     public void addContent(items.Preparable item) {
         // Plates can hold multiple ingredients (no capacity limit)

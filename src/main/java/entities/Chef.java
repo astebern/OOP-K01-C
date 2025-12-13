@@ -63,16 +63,16 @@ public class Chef {
     @BetterComments(description = "Loads the chef's directional sprite images from the resources folder", type = "method")
     public void getImage() {
         try {
-            up1 = ImageIO.read(getClass().getResourceAsStream("/player/up1.png"));
-            up2 = ImageIO.read(getClass().getResourceAsStream("/player/up2.png"));
-            down1 = ImageIO.read(getClass().getResourceAsStream("/player/down1.png"));
-            down2 = ImageIO.read(getClass().getResourceAsStream("/player/down2.png"));
-            left1 = ImageIO.read(getClass().getResourceAsStream("/player/left1.png"));
-            left2 = ImageIO.read(getClass().getResourceAsStream("/player/left2.png"));
-            left3 = ImageIO.read(getClass().getResourceAsStream("/player/left3.png"));
-            right1 = ImageIO.read(getClass().getResourceAsStream("/player/right1.png"));
-            right2 = ImageIO.read(getClass().getResourceAsStream("/player/right2.png"));
-            right3 = ImageIO.read(getClass().getResourceAsStream("/player/right3.png"));
+            up1 = ImageIO.read(getClass().getResourceAsStream("/items/player/up1.png"));
+            up2 = ImageIO.read(getClass().getResourceAsStream("/items/player/up2.png"));
+            down1 = ImageIO.read(getClass().getResourceAsStream("/items/player/down1.png"));
+            down2 = ImageIO.read(getClass().getResourceAsStream("/items/player/down2.png"));
+            left1 = ImageIO.read(getClass().getResourceAsStream("/items/player/left1.png"));
+            left2 = ImageIO.read(getClass().getResourceAsStream("/items/player/left2.png"));
+            left3 = ImageIO.read(getClass().getResourceAsStream("/items/player/left3.png"));
+            right1 = ImageIO.read(getClass().getResourceAsStream("/items/player/right1.png"));
+            right2 = ImageIO.read(getClass().getResourceAsStream("/items/player/right2.png"));
+            right3 = ImageIO.read(getClass().getResourceAsStream("/items/player/right3.png"));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -298,6 +298,25 @@ public class Chef {
                 }
             }
 
+            // Check if picking up from CleanPlateStation (static station)
+            if (stationAtTile instanceof stations.CleanPlateStation) {
+                stations.CleanPlateStation cleanPlateStation = (stations.CleanPlateStation) stationAtTile;
+                if (cleanPlateStation.hasCleanPlates()) {
+                    items.equipment.Plate plate = cleanPlateStation.removeCleanPlate();
+                    if (plate != null) {
+                        this.inventory = plate;
+                        this.currentActions = Actions.PICKINGUP;
+                        this.state = true;
+                        System.out.println(id + " picked up clean plate from CleanPlateStation (" +
+                                         cleanPlateStation.getPlateCount() + " clean plates remaining)");
+                        return;
+                    }
+                } else {
+                    System.out.println(id + " - CleanPlateStation is empty");
+                    return;
+                }
+            }
+
             // Check if picking up from AssemblyStation
             if (stationAtTile instanceof AssemblyStation) {
                 AssemblyStation assemblyStation = (AssemblyStation) stationAtTile;
@@ -320,6 +339,24 @@ public class Chef {
                     return;
                 } else {
                     System.out.println(id + " - AssemblyStation is empty");
+                    return;
+                }
+            }
+
+            // Check if picking up from WashingStation
+            if (stationAtTile instanceof stations.WashingStation) {
+                stations.WashingStation washingStation = (stations.WashingStation) stationAtTile;
+                if (washingStation.hasPlate()) {
+                    items.equipment.Plate plate = washingStation.removePlate();
+                    if (plate != null) {
+                        this.inventory = plate;
+                        this.currentActions = Actions.PICKINGUP;
+                        this.state = true;
+                        System.out.println(id + " picked up plate from WashingStation");
+                        return;
+                    }
+                } else {
+                    System.out.println(id + " - WashingStation is empty");
                     return;
                 }
             }
@@ -488,7 +525,7 @@ public class Chef {
                                     this.currentActions = Actions.DROPPINGDOWN;
                                     this.state = true;
 
-                                    // Schedule NEW dirty plate to appear at SERVING COUNTER
+                                    // Schedule NEW dirty plate to appear at PlateStorage
                                     new Thread(() -> {
                                         try {
                                             Thread.sleep(10000); // 10 seconds
@@ -497,24 +534,26 @@ public class Chef {
                                             items.equipment.Plate dirtyPlate = new items.equipment.Plate();
                                             dirtyPlate.setIsDirty(true);
 
-                                            // --- PERUBAHAN: Taruh langsung di Serving Counter ---
-                                            // Menggunakan koordinat yang sudah disimpan tadi
-                                            boolean success = gameMap.placeItemAt(finalTargetX, finalTargetY, dirtyPlate);
-                                            
-                                            if (success) {
-                                                System.out.println("Dirty plate appeared at Serving Counter (" + finalTargetX + "," + finalTargetY + ")");
+                                            // Find PlateStorage and add dirty plate to stack
+                                            PlateStorage plateStorage = findNearestPlateStorage();
+                                            if (plateStorage != null) {
+                                                if (plateStorage.storePlate(dirtyPlate)) {
+                                                    System.out.println("Dirty plate returned to PlateStorage (" +
+                                                                     plateStorage.getPlateCount() + " plates now in storage)");
+                                                } else {
+                                                    System.out.println("PlateStorage is full - dirty plate discarded");
+                                                }
                                             } else {
-                                                System.out.println("Failed to place dirty plate (Counter occupied?)");
+                                                System.out.println("No PlateStorage found - dirty plate discarded");
                                             }
-                                            // ----------------------------------------------------
-                                            
+
                                         } catch (InterruptedException e) {
                                             e.printStackTrace();
                                         }
                                     }).start();
 
                                 } else {
-                                    // Lakukan hal yang sama untuk kondisi piring salah (order gagal)
+                                    // Same for wrong order (order failed)
                                     System.out.println(id + " - Dish not on menu...");
 
                                     this.inventory = null;
@@ -528,10 +567,18 @@ public class Chef {
                                             items.equipment.Plate dirtyPlate = new items.equipment.Plate();
                                             dirtyPlate.setIsDirty(true);
 
-                                            // --- PERUBAHAN SAMA UNTUK ORDER GAGAL ---
-                                            gameMap.placeItemAt(finalTargetX, finalTargetY, dirtyPlate);
-                                            System.out.println("Dirty plate returned to Serving Counter (Wrong Dish)");
-                                            // ----------------------------------------
+                                            // Find PlateStorage and add dirty plate to stack
+                                            PlateStorage plateStorage = findNearestPlateStorage();
+                                            if (plateStorage != null) {
+                                                if (plateStorage.storePlate(dirtyPlate)) {
+                                                    System.out.println("Dirty plate returned to PlateStorage (Wrong Dish - " +
+                                                                     plateStorage.getPlateCount() + " plates now in storage)");
+                                                } else {
+                                                    System.out.println("PlateStorage is full - dirty plate discarded");
+                                                }
+                                            } else {
+                                                System.out.println("No PlateStorage found - dirty plate discarded");
+                                            }
 
                                         } catch (InterruptedException e) {
                                             e.printStackTrace();
@@ -703,15 +750,35 @@ public class Chef {
                     }
                 } else {
                     // Normal drop on other tiles
-                    boolean success = gameMap.placeItemAt(targetX, targetY, this.inventory);
-                    if (success) {
-                        System.out.println(id + " dropped " + this.inventory.getClass().getSimpleName() +
-                                         " at (" + targetX + ", " + targetY + ")");
-                        this.inventory = null;
-                        this.currentActions = Actions.DROPPINGDOWN;
-                        this.state = true;
+
+                    // Special case: Check if dropping on WashingStation
+                    if (stationAtTile instanceof stations.WashingStation &&
+                        this.inventory instanceof items.equipment.Plate) {
+
+                        stations.WashingStation washingStation = (stations.WashingStation) stationAtTile;
+                        items.equipment.Plate plate = (items.equipment.Plate) this.inventory;
+
+                        // Try to place plate on washing station
+                        if (washingStation.placePlate(plate)) {
+                            this.inventory = null;
+                            this.currentActions = Actions.DROPPINGDOWN;
+                            this.state = true;
+                            System.out.println(id + " dropped plate on WashingStation");
+                        } else {
+                            System.out.println(id + " - WashingStation already has a plate");
+                        }
                     } else {
-                        System.out.println(id + " failed to drop item");
+                        // Normal drop for other cases
+                        boolean success = gameMap.placeItemAt(targetX, targetY, this.inventory);
+                        if (success) {
+                            System.out.println(id + " dropped " + this.inventory.getClass().getSimpleName() +
+                                             " at (" + targetX + ", " + targetY + ")");
+                            this.inventory = null;
+                            this.currentActions = Actions.DROPPINGDOWN;
+                            this.state = true;
+                        } else {
+                            System.out.println(id + " failed to drop item");
+                        }
                     }
                 }
             }
@@ -766,6 +833,12 @@ public class Chef {
         Station station = gameMap.getStationAt(targetX, targetY);
 
         if (station != null) {
+            // Prevent interaction with CleanPlateStation (static station, pickup only)
+            if (station instanceof stations.CleanPlateStation) {
+                System.out.println(id + " - CleanPlateStation is static, use pickup instead");
+                return;
+            }
+
             System.out.println(id + " is interacting with " + station.getClass().getSimpleName() +
                              " at (" + targetX + ", " + targetY + ")");
 
@@ -809,48 +882,69 @@ public class Chef {
                     System.out.println(id + " - Item on station cannot be chopped");
                 }
             }
-            // Handle WashingStation
+            // Handle WashingStation - NEW WORKFLOW: drop plate first, then wash
             else if (station instanceof stations.WashingStation) {
                 stations.WashingStation washingStation = (stations.WashingStation) station;
 
-                // Check if chef is holding a dirty plate
-                if (this.inventory instanceof items.equipment.Plate) {
-                    items.equipment.Plate plate = (items.equipment.Plate) this.inventory;
+                // If station has a dirty plate, start washing
+                if (washingStation.hasPlate() && washingStation.getPlate().getIsDirty()) {
 
-                    if (plate.getIsDirty()) {
-                        // Set chef to busy state
-                        this.currentActions = Actions.USINGSTATION;
-                        this.state = false;
+                    // Set chef to busy state
+                    this.currentActions = Actions.USINGSTATION;
+                    this.state = false;
 
-                        // Track this station as active
-                        this.activeStation = washingStation;
-                        this.activeStationX = targetX;
-                        this.activeStationY = targetY;
+                    // Track this station as active
+                    this.activeStation = washingStation;
+                    this.activeStationX = targetX;
+                    this.activeStationY = targetY;
 
-                        // Start washing
-                        boolean started = washingStation.startWashing(plate, () -> {
-                            // On completion callback
-                            this.state = true;
-                            this.currentActions = Actions.IDLE;
-                            this.activeStation = null;
-                            this.activeStationX = -1;
-                            this.activeStationY = -1;
-                            System.out.println(id + " finished washing plate - plate is now clean!");
-                        });
+                    // Start washing
+                    boolean started = washingStation.startWashing();
 
-                        if (!started) {
-                            // Failed to start, reset chef state
-                            this.state = true;
-                            this.currentActions = Actions.IDLE;
-                            this.activeStation = null;
-                            this.activeStationX = -1;
-                            this.activeStationY = -1;
+                    if (started) {
+                        System.out.println(id + " started washing the plate");
+
+                        // Wait for washing to complete (handled in update loop)
+                        // When complete, plate will be sent to CleanPlateStation automatically
+                        new Thread(() -> {
+                            try {
+                                Thread.sleep(3100); // Wait for washing to complete
+                                this.state = true;
+                                this.currentActions = Actions.IDLE;
+                                this.activeStation = null;
+                                this.activeStationX = -1;
+                                this.activeStationY = -1;
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }).start();
+                    } else {
+                        // Failed to start, reset chef state
+                        this.state = true;
+                        this.currentActions = Actions.IDLE;
+                        this.activeStation = null;
+                        this.activeStationX = -1;
+                        this.activeStationY = -1;
+                    }
+                }
+                // If station has a clean plate, pick it up
+                else if (washingStation.hasPlate() && !washingStation.getPlate().getIsDirty()) {
+                    if (this.inventory == null) {
+                        items.equipment.Plate plate = washingStation.removePlate();
+                        if (plate != null) {
+                            this.inventory = plate;
+                            System.out.println(id + " picked up clean plate from washing station");
                         }
                     } else {
-                        System.out.println(id + " - Plate is already clean");
+                        System.out.println(id + " - Hands are full, cannot pick up plate");
                     }
-                } else {
-                    System.out.println(id + " - Must hold a dirty plate to use washing station");
+                }
+                // Station is empty
+                else if (!washingStation.hasPlate()) {
+                    System.out.println(id + " - No plate on washing station. Drop a dirty plate first (press E)");
+                }
+                else {
+                    System.out.println(id + " - Washing station: unexpected state");
                 }
             }
             // Handle CookingStation

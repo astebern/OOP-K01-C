@@ -18,10 +18,10 @@ public class AssemblyStation extends Station {
     private Item currentItem; // Can hold only 1 item (ingredient, dish, or plate)
     private Plate plateOnStation; // Track plate separately for special handling
     private static final List<Recipe> recipes;
-    private static final List<Recipe> intermediateRecipes;
+    private static final List<Recipe> intermediateRecipes; // Recipes that can't be ordered
 
 static {
-        // --- 1. RESEP UTAMA (Bisa Dipesan) ---
+        // --- RESEP UTAMA (Bisa Dipesan) ---
         recipes = new ArrayList<>();
         
         recipes.add(new Recipe("Pasta Marinara", Arrays.asList(
@@ -34,25 +34,30 @@ static {
             new Requirement("Daging", IngredientState.COOKED)
         )));
 
-        recipes.add(new Recipe("Pasta Frutti di Mare", Arrays.asList(
-            new Requirement("Pasta", IngredientState.COOKED),
-            new Requirement("Udang", IngredientState.COOKED),
-            new Requirement("Ikan", IngredientState.COOKED)
-        )));
+        // Note: Frutti di Mare is NOT in main recipes anymore!
+        // It's created by combining intermediate dishes
 
-        // --- 2. RESEP PERANTARA (Visualisasi Tahap Masak) ---
+        // --- RESEP PERANTARA (TIDAK Bisa Dipesan) ---
         intermediateRecipes = new ArrayList<>();
 
-        // Pasta + Ikan = Visual Pasta Fish (Langkah 2.2 Opsi A)
+        // Pasta + Ikan = Pasta Ikan (intermediate, can't be ordered)
         intermediateRecipes.add(new Recipe("Pasta Di Pesce", Arrays.asList(
             new Requirement("Pasta", IngredientState.COOKED),
             new Requirement("Ikan", IngredientState.COOKED)
         )));
 
-        // Pasta + Udang = Visual Pasta Shrimp (Langkah 2.2 Opsi B)
+        // Pasta + Udang = Pasta Udang (intermediate, can't be ordered)
         intermediateRecipes.add(new Recipe("Pasta Ai Gamberetti", Arrays.asList(
             new Requirement("Pasta", IngredientState.COOKED),
             new Requirement("Udang", IngredientState.COOKED)
+        )));
+
+        // Frutti di Mare = Pasta Ikan + Udang OR Pasta Udang + Ikan
+        // This will be handled specially in addIngredient() and addDish()
+        intermediateRecipes.add(new Recipe("Pasta Frutti di Mare", Arrays.asList(
+            new Requirement("Pasta", IngredientState.COOKED),
+            new Requirement("Udang", IngredientState.COOKED),
+            new Requirement("Ikan", IngredientState.COOKED)
         )));
     }
 
@@ -62,6 +67,8 @@ static {
     }
 
     public static List<Recipe> getRecipes() {
+        // Only return main recipes that can be ordered (Marinara, Bolognese)
+        // Intermediate recipes (Pasta Ikan, Pasta Udang, Frutti di Mare) cannot be ordered
         return recipes;
     }
 
@@ -140,42 +147,72 @@ static {
     public Dish addIngredient(Ingredient ingredient, GameMap gameMap, int stationX, int stationY) {
         // KASUS 1: Ada piring di Station
         if (plateOnStation != null) {
-            // 1. Ambil isi piring saat ini & tambahkan bahan baru ke list sementara
-            List<Preparable> potentialComponents = new ArrayList<>(plateOnStation.getContents());
+            // 1. Ambil isi piring saat ini & expand jika berupa dish
+            List<Preparable> potentialComponents = new ArrayList<>();
+
+            System.out.println("=== DEBUG: Adding " + ingredient.getName() + " (state: " + ingredient.getState() + ") to plate ===");
+            System.out.println("Plate currently has " + plateOnStation.getContents().size() + " items");
+
+            // Expand contents: jika ada dish, ambil ingredients-nya
+            for (Preparable content : plateOnStation.getContents()) {
+                if (content instanceof Dish) {
+                    Dish existingDish = (Dish) content;
+                    System.out.println("  - Found Dish: " + existingDish.getName() + " with " + existingDish.getComponents().size() + " components");
+                    for (Preparable comp : existingDish.getComponents()) {
+                        if (comp instanceof Ingredient) {
+                            Ingredient ing = (Ingredient) comp;
+                            System.out.println("    * " + ing.getName() + " (state: " + ing.getState() + ")");
+                        }
+                    }
+                    potentialComponents.addAll(existingDish.getComponents());
+                } else if (content instanceof Ingredient) {
+                    Ingredient ing = (Ingredient) content;
+                    System.out.println("  - Found Ingredient: " + ing.getName() + " (state: " + ing.getState() + ")");
+                    potentialComponents.add(content);
+                }
+            }
+
+            // Tambahkan ingredient baru
             potentialComponents.add(ingredient);
 
-            // 2. CEK RESEP UTAMA (Prioritas Tertinggi - misal Frutti di Mare)
-            // Menggunakan overload tryAssembleDish yang mengecek list 'recipes' utama
+            System.out.println("Total components after adding: " + potentialComponents.size());
+            for (Preparable comp : potentialComponents) {
+                if (comp instanceof Ingredient) {
+                    Ingredient ing = (Ingredient) comp;
+                    System.out.println("  > " + ing.getName() + " (state: " + ing.getState() + ")");
+                }
+            }
+
+            // 2. CEK INTERMEDIATE RECIPES DULU (Pasta Ikan, Pasta Udang, atau Frutti di Mare)
+            Dish intermediateDish = tryAssembleDish(potentialComponents, intermediateRecipes);
+
+            if (intermediateDish != null) {
+                // Berhasil jadi intermediate dish ATAU Frutti di Mare
+                plateOnStation.clearContents();
+                plateOnStation.addContent(intermediateDish);
+                System.out.println("AssemblyStation: Dish created - " + intermediateDish.getName());
+
+                // Return sinyal agar inventory Chef kosong (item pindah ke piring)
+                return new Dish("__INGREDIENT_ON_PLATE__", new ArrayList<>());
+            }
+
+            // 3. CEK RESEP UTAMA (Marinara, Bolognese) - hanya jika bukan Frutti
             Dish assembledDish = tryAssembleDish(potentialComponents, recipes);
 
             if (assembledDish != null) {
-                // Berhasil jadi masakan utuh (Siap saji)
+                // Berhasil jadi masakan utama (Marinara atau Bolognese)
                 plateOnStation.clearContents();
                 plateOnStation.addContent(assembledDish);
                 System.out.println("AssemblyStation: Recipe completed - " + assembledDish.getName());
                 
                 // Return sinyal agar inventory Chef kosong (item pindah ke piring)
                 return new Dish("__INGREDIENT_ON_PLATE__", new ArrayList<>()); 
-            } 
-            
-            // 3. CEK RESEP PERANTARA (Visualisasi - misal Pasta + Ikan = Visual Pasta Fish)
-            // Menggunakan tryAssembleDish dengan list 'intermediateRecipes'
-            Dish intermediateDish = tryAssembleDish(potentialComponents, intermediateRecipes);
-
-            if (intermediateDish != null) {
-                // Berhasil jadi tahap menengah (Ubah visual)
-                plateOnStation.clearContents();
-                plateOnStation.addContent(intermediateDish);
-                System.out.println("AssemblyStation: Intermediate stage created - " + intermediateDish.getName());
-                
-                // Return sinyal agar inventory Chef kosong
-                return new Dish("__INGREDIENT_ON_PLATE__", new ArrayList<>());
             }
 
-            // 4. Jika tidak cocok apa-apa, tumpuk saja sebagai bahan terpisah
+            // 4. Jika tidak cocok resep, tumpuk saja sebagai bahan terpisah
             plateOnStation.addContent(ingredient);
-            System.out.println("AssemblyStation: Added " + ingredient.getName() + " to plate");
-            
+            System.out.println("AssemblyStation: Added " + ingredient.getName() + " to plate (waiting for more ingredients)");
+
             // Return sinyal agar inventory Chef kosong
             return new Dish("__INGREDIENT_ON_PLATE__", new ArrayList<>());
         }
@@ -197,7 +234,15 @@ static {
         }
         components.add(ingredient);
 
-        // Cek resep utama untuk penggabungan di meja (tanpa piring)
+        // Check intermediate recipes first
+        Dish intermediateDish = tryAssembleDish(components, intermediateRecipes);
+        if (intermediateDish != null) {
+            this.currentItem = null;
+            System.out.println("AssemblyStation: Dish created - " + intermediateDish.getName());
+            return intermediateDish;
+        }
+
+        // Then check main recipes
         Dish assembledDish = tryAssembleDish(components, recipes);
 
         if (assembledDish != null) {
@@ -268,31 +313,50 @@ static {
 
 
     private Dish tryAssembleDish(List<Preparable> components, List<Recipe> recipesToCheck) {
+        System.out.println("=== tryAssembleDish: Checking " + recipesToCheck.size() + " recipes ===");
+
         // 1. Expand components
         // Jika ada komponen yang berupa Dish (misal: "Pasta Di Pesce"),
         // kita perlu memecahnya kembali menjadi bahan dasarnya (Pasta + Ikan)
         // agar bisa dicocokkan dengan resep utuh (misal: Frutti di Mare = Pasta + Ikan + Udang).
         List<Preparable> expandedComponents = new ArrayList<>();
         
+        System.out.println("Expanding " + components.size() + " components...");
         for (Preparable component : components) {
             if (component instanceof Dish) {
                 // Jika komponen adalah Dish, ambil semua isi (ingredients)-nya
                 Dish dish = (Dish) component;
+                System.out.println("  - Expanding Dish: " + dish.getName() + " into " + dish.getComponents().size() + " components");
                 expandedComponents.addAll(dish.getComponents());
-            } else {
+            } else if (component instanceof Ingredient) {
                 // Jika komponen adalah Ingredient biasa, langsung tambahkan
+                Ingredient ing = (Ingredient) component;
+                System.out.println("  - Adding Ingredient: " + ing.getName() + " (state: " + ing.getState() + ")");
                 expandedComponents.add(component);
+            }
+        }
+
+        System.out.println("After expansion: " + expandedComponents.size() + " components");
+        for (Preparable comp : expandedComponents) {
+            if (comp instanceof Ingredient) {
+                Ingredient ing = (Ingredient) comp;
+                System.out.println("  >> " + ing.getName() + " (state: " + ing.getState() + ")");
             }
         }
 
         // 2. Cek kecocokan dengan daftar resep yang diberikan
         for (Recipe recipe : recipesToCheck) {
+            System.out.println("Checking recipe: " + recipe.getName() + " (requires " + recipe.getRequiredComponents().size() + " items)");
             if (matchesRecipe(expandedComponents, recipe)) {
+                System.out.println("  ✓ MATCH! Creating dish: " + recipe.getName());
                 // Jika cocok, buat Dish baru dengan nama resep tersebut
                 return new Dish(recipe.getName(), expandedComponents);
+            } else {
+                System.out.println("  ✗ No match");
             }
         }
         
+        System.out.println("No recipe matched.");
         return null; // Tidak ada resep yang cocok
     }
 

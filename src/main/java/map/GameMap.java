@@ -12,7 +12,6 @@ import utils.Position;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
-import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -39,7 +38,7 @@ public class GameMap {
     @BetterComments(description = "Creates the tile array and map grid, loads tile graphics and collision settings, and initializes the kitchen layout",type="constructor")
     public GameMap(GamePanel gp){
         this.gp = gp;
-        tiles = new Tile [11];
+        tiles = new Tile [12]; // Changed from 11 to 12 to add CleanPlateStation
         mapData = new int[MAP_HEIGHT][MAP_WIDTH];
         tileDataMap = new HashMap<>();
         getTileImage();
@@ -132,8 +131,8 @@ public class GameMap {
         mapData[9][12] =2;
 
         mapData[0][13] =2;
-        mapData[1][13] =6;
-        mapData[2][13] =6;
+        mapData[1][13] =11; // Clean Plate Station (static)
+        mapData[2][13] =6;  // Washing Station (interactive)
         mapData[3][13] =8;
         mapData[4][13] =9;
         mapData[5][13] =9;
@@ -203,6 +202,15 @@ public class GameMap {
                     }
                     
                     setTileData(x, y, station, utensil);
+                } else if (tileId == 6) {
+                    // Washing Station - set gameMap reference
+                    WashingStation washingStation = (WashingStation) createStationForTile(tileId);
+                    washingStation.setGameMap(this);
+                    setTileData(x, y, washingStation, null);
+                } else if (tileId == 11) {
+                    // Clean Plate Station - static, no interaction
+                    Station station = createStationForTile(tileId);
+                    setTileData(x, y, station, null);
                 } else {
                     // Other station tiles
                     Station station = createStationForTile(tileId);
@@ -233,6 +241,8 @@ public class GameMap {
                 return new CookingStation();
             case 10: // Cutting Station
                 return new CuttingStation();
+            case 11: // Clean Plate Station (static, no interaction)
+                return new CleanPlateStation();
             default:
                 return null; // No station for floor, spawn, and wall tiles
         }
@@ -285,6 +295,10 @@ public class GameMap {
             tiles[10] = new Tile();
             tiles[10].image = ImageIO.read(getClass().getResourceAsStream("/tile/cutting_tile.png"));
             tiles[10].collision = true;
+            // Clean Plate Station (static, no interaction)
+            tiles[11] = new Tile();
+            tiles[11].image = ImageIO.read(getClass().getResourceAsStream("/tile/washing2_tile.png"));
+            tiles[11].collision = true;
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -327,12 +341,55 @@ Station station = getStationAt(x, y);
                                 // Geser setiap piring ke atas sedikit (misal 3-4 pixel) berdasarkan index-nya
                                 int stackOffset = i * 4; 
                                 int screenY = y * gp.tileSize + (gp.tileSize - itemSize) / 2 - stackOffset;
-                                
+
                                 g2.drawImage(plate.getImage(), screenX, screenY, itemSize, itemSize, null);
                             }
                         }
                     }
                     // Continue agar tidak merender item default (karena sudah digambar custom di atas)
+                    continue;
+                }
+
+                // Special case: Draw clean plates on CleanPlateStation
+                if (station instanceof CleanPlateStation) {
+                    CleanPlateStation cleanPlateStation = (CleanPlateStation) station;
+                    if (cleanPlateStation.hasCleanPlates()) {
+                        // Draw stacked clean plates
+                        java.util.Stack<items.equipment.Plate> plates = cleanPlateStation.getCleanPlates();
+
+                        for (int i = 0; i < plates.size(); i++) {
+                            items.equipment.Plate plate = plates.get(i);
+
+                            if (plate.getImage() != null) {
+                                int itemSize = 48; // Plate size
+                                int screenX = x * gp.tileSize + (gp.tileSize - itemSize) / 2;
+
+                                // Stack offset: each plate slightly above the previous one
+                                int stackOffset = i * 4;
+                                int screenY = y * gp.tileSize + (gp.tileSize - itemSize) / 2 - stackOffset;
+
+                                g2.drawImage(plate.getImage(), screenX, screenY, itemSize, itemSize, null);
+                            }
+                        }
+                    }
+                    // Continue to skip default item rendering
+                    continue;
+                }
+
+                // Special case: Draw plate on WashingStation if present
+                if (station instanceof WashingStation) {
+                    WashingStation washingStation = (WashingStation) station;
+                    if (washingStation.hasPlate()) {
+                        items.equipment.Plate plate = washingStation.getPlate();
+                        if (plate.getImage() != null) {
+                            int itemSize = 48; // Plate size
+                            int screenX = x * gp.tileSize + (gp.tileSize - itemSize) / 2;
+                            int screenY = y * gp.tileSize + (gp.tileSize - itemSize) / 2;
+
+                            g2.drawImage(plate.getImage(), screenX, screenY, itemSize, itemSize, null);
+                        }
+                    }
+                    // Continue to skip default item rendering
                     continue;
                 }
 
