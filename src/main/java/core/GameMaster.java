@@ -130,15 +130,15 @@ public class GameMaster {
     private int getTargetScoreForStage(int stageNumber) {
         switch (stageNumber) {
             case 1:
-                return 300;  // Stage 1: Easy - 300 points
+                return 100;  // Stage 1: Tutorial - 100 points (~2 orders)
             case 2:
-                return 500;  // Stage 2: Medium - 500 points
+                return 200;  // Stage 2: Easy - 200 points (~4 orders)
             case 3:
-                return 750;  // Stage 3: Hard - 750 points
+                return 350;  // Stage 3: Medium - 350 points (~7 orders)
             case 4:
-                return 1000; // Stage 4: Expert - 1000 points
+                return 500;  // Stage 4: Hard - 500 points (~10 orders)
             default:
-                return 500;  // Default - 500 points
+                return 200;  // Default - 200 points
         }
     }
 

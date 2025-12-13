@@ -33,7 +33,7 @@ public class OrderManager {
 
     // Target score per stage
     private int targetScore;
-    private static final int DEFAULT_TARGET_SCORE = 500; // Default target for stage
+    private static final int DEFAULT_TARGET_SCORE = 200; // Default target for stage (lowered from 500)
 
     @BetterComments(description="Initializes the order manager with random orders", type="constructor")
     public OrderManager() {
