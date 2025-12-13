@@ -1,6 +1,6 @@
 # 🍳 NimonsCooked
 
-**NimonsCooked** is a 2D co-op cooking simulation game built from scratch using **Java** and **Swing**. Inspired by *Overcooked!*, this project was developed as a final assignment for the Object-Oriented Programming (OOP) course.
+**NimonsCooked** is a 2D co-op cooking simulation game built from scratch using **Java** and **Swing**. Inspired by *Overcooked!*, this project was developed as a *tugas besar* for the Object-Oriented Programming (OOP) course.
 
 The goal is simple: manage two chefs in a chaotic kitchen, prepare ingredients, cook recipes, and serve customers before time runs out.
 
@@ -85,7 +85,10 @@ src/main/java
 
 ## 👥 Authors
 
-* **[Nama Kamu / Tim Kamu]** - *Developer*
+18223019	A. Nurul Aqeela Amin
+18224051	Belva Charissa Putri Have
+18224011	Satria Guna Darma
+18224031	Daniel Arrigo Manurung
 
 ---
-*Created for Object-Oriented Programming Course Final Project.*
+*Created for Tugas Besar IF2010 - Object-Oriented Programming Course.*
