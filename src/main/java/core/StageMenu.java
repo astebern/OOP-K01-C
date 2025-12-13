@@ -76,7 +76,7 @@ public class StageMenu extends JPanel {
     @BetterComments(description = "Handle stage selection and start the game", type = "method")
     private void selectStage(int stageNumber) {
         System.out.println("Stage " + stageNumber + " selected!");
-        gameMaster.startGame();
+        gameMaster.startGame(stageNumber);
     }
 
     @BetterComments(description = "Go back to start menu", type = "method")

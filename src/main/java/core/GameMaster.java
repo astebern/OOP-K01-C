@@ -96,7 +96,7 @@ public class GameMaster {
     }
 
     @BetterComments(description="Replace the stage menu and initialize the main gameplay panel",type="method")
-    public void startGame(){
+    public void startGame(int stageNumber){
 
         //// ini yg fix bug new stage dobel player      
         if (gamePanel != null) {
@@ -109,6 +109,11 @@ public class GameMaster {
 
         orderManager = new OrderManager();
 
+        // Set target score based on stage number
+        int targetScore = getTargetScoreForStage(stageNumber);
+        orderManager.setTargetScore(targetScore);
+        System.out.println("GameMaster: Stage " + stageNumber + " - Target Score: " + targetScore);
+
         gamePanel = new GamePanel(this);
         frame.add(gamePanel);
 
@@ -119,6 +124,22 @@ public class GameMaster {
 
         gamePanel.startGameThread();
         gamePanel.requestFocusInWindow();
+    }
+
+    @BetterComments(description="Returns the target score for a specific stage",type="method")
+    private int getTargetScoreForStage(int stageNumber) {
+        switch (stageNumber) {
+            case 1:
+                return 300;  // Stage 1: Easy - 300 points
+            case 2:
+                return 500;  // Stage 2: Medium - 500 points
+            case 3:
+                return 750;  // Stage 3: Hard - 750 points
+            case 4:
+                return 1000; // Stage 4: Expert - 1000 points
+            default:
+                return 500;  // Default - 500 points
+        }
     }
 
     @BetterComments(description = "Cycles to the next available chef and updates the active chef index",type ="method")
