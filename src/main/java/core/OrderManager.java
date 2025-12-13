@@ -126,6 +126,14 @@ public class OrderManager {
         if (elapsedTime >= stageTimeLimit) {
             gameOver = true;
 
+            // Debug: Print current state
+            System.out.println("========================================");
+            System.out.println("TIME'S UP! Checking stage completion:");
+            System.out.println("Current Score: " + score);
+            System.out.println("Target Score: " + targetScore);
+            System.out.println("Score >= Target? " + (score >= targetScore));
+            System.out.println("========================================");
+
             // Check if target score was reached
             if (score >= targetScore) {
                 stageSuccess = true;
@@ -187,6 +195,12 @@ public class OrderManager {
                 money += order.getReward();
                 score += order.getReward();
                 ordersCompleted++;
+
+                // Debug: Show score progress
+                System.out.println(">>> SCORE UPDATE: " + (score - order.getReward()) + " -> " + score + " (Target: " + targetScore + ")");
+                if (score >= targetScore) {
+                    System.out.println(">>> TARGET REACHED! Stage can be completed when timer runs out.");
+                }
 
                 int position = order.getPosisiOrder();
                 activeOrders.remove(order);
