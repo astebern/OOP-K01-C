@@ -63,16 +63,16 @@ public class Chef {
     @BetterComments(description = "Loads the chef's directional sprite images from the resources folder", type = "method")
     public void getImage() {
         try {
-            up1 = ImageIO.read(getClass().getResourceAsStream("/player/up1.png"));
-            up2 = ImageIO.read(getClass().getResourceAsStream("/player/up2.png"));
-            down1 = ImageIO.read(getClass().getResourceAsStream("/player/down1.png"));
-            down2 = ImageIO.read(getClass().getResourceAsStream("/player/down2.png"));
-            left1 = ImageIO.read(getClass().getResourceAsStream("/player/left1.png"));
-            left2 = ImageIO.read(getClass().getResourceAsStream("/player/left2.png"));
-            left3 = ImageIO.read(getClass().getResourceAsStream("/player/left3.png"));
-            right1 = ImageIO.read(getClass().getResourceAsStream("/player/right1.png"));
-            right2 = ImageIO.read(getClass().getResourceAsStream("/player/right2.png"));
-            right3 = ImageIO.read(getClass().getResourceAsStream("/player/right3.png"));
+            up1 = ImageIO.read(getClass().getResourceAsStream("/items/player/up1.png"));
+            up2 = ImageIO.read(getClass().getResourceAsStream("/items/player/up2.png"));
+            down1 = ImageIO.read(getClass().getResourceAsStream("/items/player/down1.png"));
+            down2 = ImageIO.read(getClass().getResourceAsStream("/items/player/down2.png"));
+            left1 = ImageIO.read(getClass().getResourceAsStream("/items/player/left1.png"));
+            left2 = ImageIO.read(getClass().getResourceAsStream("/items/player/left2.png"));
+            left3 = ImageIO.read(getClass().getResourceAsStream("/items/player/left3.png"));
+            right1 = ImageIO.read(getClass().getResourceAsStream("/items/player/right1.png"));
+            right2 = ImageIO.read(getClass().getResourceAsStream("/items/player/right2.png"));
+            right3 = ImageIO.read(getClass().getResourceAsStream("/items/player/right3.png"));
         } catch (IOException e) {
             e.printStackTrace();
         }
