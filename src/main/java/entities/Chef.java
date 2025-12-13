@@ -247,7 +247,6 @@ public class Chef {
             }
         }
     }
-    
     @BetterComments(description = "Handles picking up items from stations or dropping items from inventory", type="method")
     public void pickUpDrop(){
         // Get the target tile in front of the player (follows the green indicator)
@@ -477,15 +476,19 @@ public class Chef {
                             if (orderManager != null) {
                                 boolean orderCompleted = orderManager.checkAndCompleteOrder(dish);
 
+                                // --- TAMBAHAN PENTING: Simpan koordinat untuk Thread ---
+                                int finalTargetX = targetX;
+                                int finalTargetY = targetY;
+                                // -------------------------------------------------------
+
                                 if (orderCompleted) {
                                     System.out.println(id + " - Order completed successfully!");
 
-                                    // Remove plate from chef's inventory IMMEDIATELY
                                     this.inventory = null;
                                     this.currentActions = Actions.DROPPINGDOWN;
                                     this.state = true;
 
-                                    // Schedule a NEW dirty plate to appear in PlateStorage after 10 seconds
+                                    // Schedule NEW dirty plate to appear at SERVING COUNTER
                                     new Thread(() -> {
                                         try {
                                             Thread.sleep(10000); // 10 seconds
@@ -494,40 +497,42 @@ public class Chef {
                                             items.equipment.Plate dirtyPlate = new items.equipment.Plate();
                                             dirtyPlate.setIsDirty(true);
 
-                                            // Find nearest PlateStorage and add the dirty plate
-                                            PlateStorage nearestStorage = findNearestPlateStorage();
-                                            if (nearestStorage != null) {
-                                                nearestStorage.storePlate(dirtyPlate);
-                                                System.out.println("Dirty plate automatically appeared in PlateStorage after 10 seconds (order completed)");
+                                            // --- PERUBAHAN: Taruh langsung di Serving Counter ---
+                                            // Menggunakan koordinat yang sudah disimpan tadi
+                                            boolean success = gameMap.placeItemAt(finalTargetX, finalTargetY, dirtyPlate);
+                                            
+                                            if (success) {
+                                                System.out.println("Dirty plate appeared at Serving Counter (" + finalTargetX + "," + finalTargetY + ")");
+                                            } else {
+                                                System.out.println("Failed to place dirty plate (Counter occupied?)");
                                             }
+                                            // ----------------------------------------------------
+                                            
                                         } catch (InterruptedException e) {
                                             e.printStackTrace();
                                         }
                                     }).start();
 
                                 } else {
-                                    System.out.println(id + " - Dish not on menu - plate will return dirty to storage in 10 seconds");
+                                    // Lakukan hal yang sama untuk kondisi piring salah (order gagal)
+                                    System.out.println(id + " - Dish not on menu...");
 
-                                    // Remove plate from chef's inventory IMMEDIATELY
                                     this.inventory = null;
                                     this.currentActions = Actions.DROPPINGDOWN;
                                     this.state = true;
 
-                                    // Schedule a NEW dirty plate to appear in PlateStorage after 10 seconds
                                     new Thread(() -> {
                                         try {
                                             Thread.sleep(10000); // 10 seconds
 
-                                            // Create a new dirty plate
                                             items.equipment.Plate dirtyPlate = new items.equipment.Plate();
                                             dirtyPlate.setIsDirty(true);
 
-                                            // Find nearest PlateStorage and add the dirty plate
-                                            PlateStorage nearestStorage = findNearestPlateStorage();
-                                            if (nearestStorage != null) {
-                                                nearestStorage.storePlate(dirtyPlate);
-                                                System.out.println("Dirty plate automatically appeared in PlateStorage after 10 seconds (wrong dish)");
-                                            }
+                                            // --- PERUBAHAN SAMA UNTUK ORDER GAGAL ---
+                                            gameMap.placeItemAt(finalTargetX, finalTargetY, dirtyPlate);
+                                            System.out.println("Dirty plate returned to Serving Counter (Wrong Dish)");
+                                            // ----------------------------------------
+
                                         } catch (InterruptedException e) {
                                             e.printStackTrace();
                                         }
