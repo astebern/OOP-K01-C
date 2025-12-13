@@ -47,10 +47,6 @@ public class Order {
                 return "/items/serving/marinara.png";
             case "Pasta Bolognese":
                 return "/items/serving/bolognese.png";
-            case "Pasta Ai Gamberetti":
-                return "/items/serving/pasta_shrimp.png";
-            case "Pasta Di Pesce":
-                return "/items/serving/pasta_fish.png";
             case "Pasta Frutti di Mare":
                 return "/items/serving/frutti.png";
             default:

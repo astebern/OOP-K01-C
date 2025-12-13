@@ -180,7 +180,7 @@ public class Chef {
         }
     }
 
-    @BetterComments(description = "Renders the current animation frame of the chef at its position on the screen",type="method")
+@BetterComments(description = "Renders the current animation frame of the chef at its position on the screen",type="method")
     public void draw(Graphics2D g2){
         BufferedImage image = null;
         switch (direction){
@@ -207,37 +207,47 @@ public class Chef {
             int itemSize = gp.tileSize / 2;
             int itemX = this.position.getX() + (gp.tileSize - itemSize) / 2;
             int itemY = this.position.getY() - itemSize / 2;
+            
+            // Gambar item yang dipegang (misal: Piring)
             g2.drawImage(inventory.getImage(), itemX, itemY, itemSize, itemSize, null);
 
-            // If inventory is a plate with item, draw the item on top
+            // Jika inventory adalah Plate, gambar SEMUA isinya
             if (inventory instanceof items.equipment.Plate) {
                 items.equipment.Plate plate = (items.equipment.Plate) inventory;
+                
                 if (!plate.getContents().isEmpty()) {
-                    items.Preparable content = plate.getContents().get(0);
-                    if (content instanceof items.food.Dish) {
-                        // Draw dish image (assembled dish)
-                        items.food.Dish dish = (items.food.Dish) content;
-                        if (dish.getImage() != null) {
-                            int dishSize = gp.tileSize / 3;
-                            int dishX = this.position.getX() + (gp.tileSize - dishSize) / 2;
-                            int dishY = this.position.getY() - itemSize / 2 - 3; // Slightly above plate
-                            g2.drawImage(dish.getImage(), dishX, dishY, dishSize, dishSize, null);
-                        }
-                    } else if (content instanceof items.food.Ingredient) {
-                        // Draw ingredient image
-                        items.food.Ingredient ingredient = (items.food.Ingredient) content;
-                        if (ingredient.getImage() != null) {
-                            int ingredientSize = gp.tileSize / 3;
-                            int ingredientX = this.position.getX() + (gp.tileSize - ingredientSize) / 2;
-                            int ingredientY = this.position.getY() - itemSize / 2 - 3; // Slightly above plate
-                            g2.drawImage(ingredient.getImage(), ingredientX, ingredientY, ingredientSize, ingredientSize, null);
+                    // Loop semua konten, bukan cuma get(0)
+                    for (int i = 0; i < plate.getContents().size(); i++) {
+                        items.Preparable content = plate.getContents().get(i);
+                        
+                        // Buat sedikit offset (pergeseran) agar bahan yang ditumpuk terlihat semua
+                        // Geser sedikit ke atas (-3 per item)
+                        int stackOffset = i * 3; 
+                        int contentY = itemY - 3 - stackOffset;
+
+                        if (content instanceof items.food.Dish) {
+                            // Draw dish image (assembled dish)
+                            items.food.Dish dish = (items.food.Dish) content;
+                            if (dish.getImage() != null) {
+                                int dishSize = gp.tileSize / 3;
+                                int dishX = this.position.getX() + (gp.tileSize - dishSize) / 2;
+                                g2.drawImage(dish.getImage(), dishX, contentY, dishSize, dishSize, null);
+                            }
+                        } else if (content instanceof items.food.Ingredient) {
+                            // Draw ingredient image
+                            items.food.Ingredient ingredient = (items.food.Ingredient) content;
+                            if (ingredient.getImage() != null) {
+                                int ingredientSize = gp.tileSize / 3;
+                                int ingredientX = this.position.getX() + (gp.tileSize - ingredientSize) / 2;
+                                g2.drawImage(ingredient.getImage(), ingredientX, contentY, ingredientSize, ingredientSize, null);
+                            }
                         }
                     }
                 }
             }
         }
     }
-
+    
     @BetterComments(description = "Handles picking up items from stations or dropping items from inventory", type="method")
     public void pickUpDrop(){
         // Get the target tile in front of the player (follows the green indicator)

@@ -22,6 +22,9 @@ public class OrderManager {
     private String gameOverReason;
     private static final int MAX_FAILED_ORDERS = 3;
 
+    private long lastSpawnTime;
+    private static final long SPAWN_INTERVAL = 15000; 
+
     // Stage timer fields
     private long stageStartTime;
     private long stageTimeLimit; // in milliseconds
@@ -42,11 +45,11 @@ public class OrderManager {
         // Initialize stage timer
         this.stageTimeLimit = DEFAULT_STAGE_TIME;
         this.stageStartTime = System.currentTimeMillis();
+        this.lastSpawnTime = System.currentTimeMillis();
 
         // Generate initial orders
-        for (int i = 0; i < maxConcurrentOrders; i++) {
-            generateNewOrder(i);
-        }
+        generateNewOrder(0); 
+        System.out.println("OrderManager: Initial order generated.");
     }
 
     @BetterComments(description="Generates a new random order from available recipes", type="method")
@@ -77,11 +80,36 @@ public class OrderManager {
 
     @BetterComments(description="Updates order timers and handles expired orders", type="method")
     public void update() {
-        if (gameOver) return; // Don't update if game is over
+        if (gameOver) return; // jgn update if game over
 
         long currentTime = System.currentTimeMillis();
         long deltaTime = currentTime - lastUpdateTime;
+
         lastUpdateTime = currentTime;
+        if (activeOrders.size() < maxConcurrentOrders && 
+            currentTime - lastSpawnTime > SPAWN_INTERVAL) {
+            
+            boolean[] slotOccupied = new boolean[maxConcurrentOrders];
+            for (Order order : activeOrders) {
+                if (order.getPosisiOrder() >= 0 && order.getPosisiOrder() < maxConcurrentOrders) {
+                    slotOccupied[order.getPosisiOrder()] = true;
+                }
+            }
+            
+            int freeSlot = -1;
+            for (int i = 0; i < maxConcurrentOrders; i++) {
+                if (!slotOccupied[i]) {
+                    freeSlot = i;
+                    break;
+                }
+            }
+
+            if (freeSlot != -1) {
+                generateNewOrder(freeSlot);
+                lastSpawnTime = currentTime; // Reset timer spawn
+                System.out.println("OrderManager: Spawned new order at position " + freeSlot);
+            }
+        }
 
         // Check if stage time has run out
         long elapsedTime = currentTime - stageStartTime;

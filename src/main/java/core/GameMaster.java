@@ -53,6 +53,11 @@ public class GameMaster {
 
     @BetterComments(description="Show stage selection menu",type="method")
     public void showStageMenu(){
+        if (gamePanel != null) {
+            gamePanel.stopGameThread();
+            gamePanel = null; 
+        }
+
         frame.getContentPane().removeAll();
 
         stageMenu = new StageMenu(this);
@@ -92,9 +97,16 @@ public class GameMaster {
 
     @BetterComments(description="Replace the stage menu and initialize the main gameplay panel",type="method")
     public void startGame(){
+
+        //// ini yg fix bug new stage dobel player      
+        if (gamePanel != null) {
+            gamePanel.stopGameThread();
+        }
+        chefList.clear(); 
+        activeChefIndex = 0; 
+
         frame.getContentPane().removeAll();
 
-        // Initialize order manager
         orderManager = new OrderManager();
 
         gamePanel = new GamePanel(this);

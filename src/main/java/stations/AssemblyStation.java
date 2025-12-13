@@ -18,43 +18,41 @@ public class AssemblyStation extends Station {
     private Item currentItem; // Can hold only 1 item (ingredient, dish, or plate)
     private Plate plateOnStation; // Track plate separately for special handling
     private static final List<Recipe> recipes;
+    private static final List<Recipe> intermediateRecipes;
 
-    static {
-        // Initialize available recipes
+static {
+        // --- 1. RESEP UTAMA (Bisa Dipesan) ---
         recipes = new ArrayList<>();
-
-        // Pasta Marinara: Pasta (Cooked) + Tomat (Cooked)
+        
         recipes.add(new Recipe("Pasta Marinara", Arrays.asList(
             new Requirement("Pasta", IngredientState.COOKED),
             new Requirement("Tomat", IngredientState.COOKED)
         )));
 
-        // Pasta Bolognese: Pasta (Cooked) + Daging (Cooked)
         recipes.add(new Recipe("Pasta Bolognese", Arrays.asList(
             new Requirement("Pasta", IngredientState.COOKED),
             new Requirement("Daging", IngredientState.COOKED)
         )));
 
-        // Pasta Ai Gamberetti: Pasta (Cooked) + Udang (Cooked)
-        recipes.add(new Recipe("Pasta Ai Gamberetti", Arrays.asList(
-            new Requirement("Pasta", IngredientState.COOKED),
-            new Requirement("Udang", IngredientState.COOKED)
-        )));
-
-        // Pasta Di Pesce: Pasta (Cooked) + Ikan (Cooked)
-        recipes.add(new Recipe("Pasta Di Pesce", Arrays.asList(
-            new Requirement("Pasta", IngredientState.COOKED),
-            new Requirement("Ikan", IngredientState.COOKED)
-        )));
-
-        // Pasta Frutti di Mare: Can be made two ways
-        // Way 1: Pasta Ai Gamberetti + Ikan = Pasta + Udang + Ikan
-        // Way 2: Pasta Di Pesce + Udang = Pasta + Ikan + Udang
-        // Both expand to the same 3 ingredients, so one recipe handles both
         recipes.add(new Recipe("Pasta Frutti di Mare", Arrays.asList(
             new Requirement("Pasta", IngredientState.COOKED),
             new Requirement("Udang", IngredientState.COOKED),
             new Requirement("Ikan", IngredientState.COOKED)
+        )));
+
+        // --- 2. RESEP PERANTARA (Visualisasi Tahap Masak) ---
+        intermediateRecipes = new ArrayList<>();
+
+        // Pasta + Ikan = Visual Pasta Fish (Langkah 2.2 Opsi A)
+        intermediateRecipes.add(new Recipe("Pasta Di Pesce", Arrays.asList(
+            new Requirement("Pasta", IngredientState.COOKED),
+            new Requirement("Ikan", IngredientState.COOKED)
+        )));
+
+        // Pasta + Udang = Visual Pasta Shrimp (Langkah 2.2 Opsi B)
+        intermediateRecipes.add(new Recipe("Pasta Ai Gamberetti", Arrays.asList(
+            new Requirement("Pasta", IngredientState.COOKED),
+            new Requirement("Udang", IngredientState.COOKED)
         )));
     }
 
@@ -130,55 +128,85 @@ public class AssemblyStation extends Station {
      * Returns a Dish if a recipe is completed, null otherwise.
      * The ingredient stays on the station (either on plate or combined with other items).
      */
+/**
+     * Adds an ingredient to the assembly station.
+     * Modified: Allows stacking multiple ingredients on a plate to form a recipe.
+     */
+/**
+     * Adds an ingredient to the assembly station.
+     * Handles stacking ingredients on a plate, checking for recipes (main & intermediate),
+     * and merging items on the station surface.
+     */
     public Dish addIngredient(Ingredient ingredient, GameMap gameMap, int stationX, int stationY) {
-        // Case 1: There's a plate on the station - add ingredient to plate
+        // KASUS 1: Ada piring di Station
         if (plateOnStation != null) {
-            if (!plateOnStation.getContents().isEmpty()) {
-                System.out.println("AssemblyStation: Plate already has an item on it");
-                return null; // Reject - plate is full
+            // 1. Ambil isi piring saat ini & tambahkan bahan baru ke list sementara
+            List<Preparable> potentialComponents = new ArrayList<>(plateOnStation.getContents());
+            potentialComponents.add(ingredient);
+
+            // 2. CEK RESEP UTAMA (Prioritas Tertinggi - misal Frutti di Mare)
+            // Menggunakan overload tryAssembleDish yang mengecek list 'recipes' utama
+            Dish assembledDish = tryAssembleDish(potentialComponents, recipes);
+
+            if (assembledDish != null) {
+                // Berhasil jadi masakan utuh (Siap saji)
+                plateOnStation.clearContents();
+                plateOnStation.addContent(assembledDish);
+                System.out.println("AssemblyStation: Recipe completed - " + assembledDish.getName());
+                
+                // Return sinyal agar inventory Chef kosong (item pindah ke piring)
+                return new Dish("__INGREDIENT_ON_PLATE__", new ArrayList<>()); 
+            } 
+            
+            // 3. CEK RESEP PERANTARA (Visualisasi - misal Pasta + Ikan = Visual Pasta Fish)
+            // Menggunakan tryAssembleDish dengan list 'intermediateRecipes'
+            Dish intermediateDish = tryAssembleDish(potentialComponents, intermediateRecipes);
+
+            if (intermediateDish != null) {
+                // Berhasil jadi tahap menengah (Ubah visual)
+                plateOnStation.clearContents();
+                plateOnStation.addContent(intermediateDish);
+                System.out.println("AssemblyStation: Intermediate stage created - " + intermediateDish.getName());
+                
+                // Return sinyal agar inventory Chef kosong
+                return new Dish("__INGREDIENT_ON_PLATE__", new ArrayList<>());
             }
 
+            // 4. Jika tidak cocok apa-apa, tumpuk saja sebagai bahan terpisah
             plateOnStation.addContent(ingredient);
-            System.out.println("AssemblyStation: Ingredient added to plate (stays on station)");
-
-            // Return empty dish to signal success - ingredient stays on plate on station
+            System.out.println("AssemblyStation: Added " + ingredient.getName() + " to plate");
+            
+            // Return sinyal agar inventory Chef kosong
             return new Dish("__INGREDIENT_ON_PLATE__", new ArrayList<>());
         }
 
-        // Case 2: No plate - check if we can combine with existing item
+        // KASUS 2: Tidak ada piring - Taruh di meja (Station kosong)
         if (currentItem == null) {
-            // Station is empty - place ingredient on station
             this.currentItem = ingredient;
             System.out.println("AssemblyStation: Ingredient placed on station");
-            return new Dish("__DISH_PLACED__", new ArrayList<>()); // Signal ingredient was placed
+            return new Dish("__DISH_PLACED__", new ArrayList<>()); // Sinyal item ditaruh di meja
         }
 
-        // Case 3: Try to combine with existing item(s) on station
+        // KASUS 3: Tidak ada piring - Gabungkan dengan item yang sudah ada di meja
         List<Preparable> components = new ArrayList<>();
-
-        // Collect existing components
         if (currentItem instanceof Dish) {
             Dish existingDish = (Dish) currentItem;
             components.addAll(existingDish.getComponents());
         } else if (currentItem instanceof Ingredient) {
             components.add((Preparable) currentItem);
         }
-
-        // Add new ingredient
         components.add(ingredient);
 
-        // Try to match with a recipe
-        Dish assembledDish = tryAssembleDish(components);
+        // Cek resep utama untuk penggabungan di meja (tanpa piring)
+        Dish assembledDish = tryAssembleDish(components, recipes);
 
         if (assembledDish != null) {
-            // Recipe matched! Clear station and return the completed dish
-            this.currentItem = null;
+            this.currentItem = null; // Item diambil dari station (jadi Dish di tangan Chef)
             System.out.println("AssemblyStation: Recipe matched - " + assembledDish.getName());
-            return assembledDish;
+            return assembledDish; // Return Dish asli untuk dipegang Chef
         } else {
-            // No recipe match - reject the ingredient (don't add it to station)
-            System.out.println("AssemblyStation: Ingredient rejected - no recipe matches these ingredients");
-            return null; // Ingredient stays in chef's inventory
+            System.out.println("AssemblyStation: Ingredient rejected - no recipe matches");
+            return null; // Gagal, item tetap di tangan Chef
         }
     }
 
@@ -238,32 +266,43 @@ public class AssemblyStation extends Station {
         }
     }
 
-    /**
-     * Tries to assemble a dish from the given components by matching against recipes.
-     * Returns the assembled Dish if a recipe matches, null otherwise.
-     * Expands any Dish components to their base ingredients for matching.
-     */
-    private Dish tryAssembleDish(List<Preparable> components) {
-        // Expand all components - if a component is a Dish, get its ingredients
+
+    private Dish tryAssembleDish(List<Preparable> components, List<Recipe> recipesToCheck) {
+        // 1. Expand components
+        // Jika ada komponen yang berupa Dish (misal: "Pasta Di Pesce"),
+        // kita perlu memecahnya kembali menjadi bahan dasarnya (Pasta + Ikan)
+        // agar bisa dicocokkan dengan resep utuh (misal: Frutti di Mare = Pasta + Ikan + Udang).
         List<Preparable> expandedComponents = new ArrayList<>();
+        
         for (Preparable component : components) {
             if (component instanceof Dish) {
-                // Expand dish to its base ingredients
+                // Jika komponen adalah Dish, ambil semua isi (ingredients)-nya
                 Dish dish = (Dish) component;
                 expandedComponents.addAll(dish.getComponents());
             } else {
+                // Jika komponen adalah Ingredient biasa, langsung tambahkan
                 expandedComponents.add(component);
             }
         }
 
-        // Try to match with recipes using expanded components
-        for (Recipe recipe : recipes) {
+        // 2. Cek kecocokan dengan daftar resep yang diberikan
+        for (Recipe recipe : recipesToCheck) {
             if (matchesRecipe(expandedComponents, recipe)) {
-                // Create new dish with expanded components
+                // Jika cocok, buat Dish baru dengan nama resep tersebut
                 return new Dish(recipe.getName(), expandedComponents);
             }
         }
-        return null;
+        
+        return null; // Tidak ada resep yang cocok
+    }
+
+    /**
+     * Overload method lama untuk kompatibilitas.
+     * Secara default akan mengecek daftar resep utama ('recipes').
+     * Dipanggil jika kita tidak menentukan list resep secara spesifik.
+     */
+    private Dish tryAssembleDish(List<Preparable> components) {
+        return tryAssembleDish(components, recipes);
     }
 
     /**

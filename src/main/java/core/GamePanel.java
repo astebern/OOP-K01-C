@@ -52,26 +52,32 @@ public class GamePanel extends JPanel implements Runnable{
         gameThread.start();
     }
 
-    @Override
-    public void run() {
-        double drawInterval = 1000000000 / fps;
-        double nextDrawTime = System.nanoTime() + drawInterval;
-        while (gameThread != null) {
-            update();
-            repaint();
-            try {
-                double remainingTime = (nextDrawTime - System.nanoTime()) / 1_000_000;
-                if (remainingTime < 0) {
-                    remainingTime = 0;
-                }
+    @BetterComments(description = "Stops the game loop", type="method")
+    public void stopGameThread() {
+        gameThread = null; // Ini akan membuat kondisi while(gameThread != null) menjadi false
+    }
 
-                Thread.sleep((long)remainingTime);
-                nextDrawTime += drawInterval;
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+@Override
+public void run() {
+    double drawInterval = 1000000000 / fps;
+    double nextDrawTime = System.nanoTime() + drawInterval;
+
+    while (gameThread != null) { 
+        update();
+        repaint();
+        try {
+            double remainingTime = (nextDrawTime - System.nanoTime()) / 1_000_000;
+            if (remainingTime < 0) {
+                remainingTime = 0;
             }
+
+            Thread.sleep((long)remainingTime);
+            nextDrawTime += drawInterval;
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
+}
 
     @BetterComments(description = "Updates Active Chef",type="method")
     public void update(){

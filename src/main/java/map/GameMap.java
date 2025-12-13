@@ -308,22 +308,31 @@ public class GameMap {
                 Item item = getItemAt(x, y);
 
                 // Special case: Draw plate on PlateStorage if it has plates
-                Station station = getStationAt(x, y);
+Station station = getStationAt(x, y);
                 if (station instanceof PlateStorage) {
                     PlateStorage plateStorage = (PlateStorage) station;
                     if (plateStorage.hasPlates()) {
-                        // Draw a plate image to indicate plates are available
-                        try {
-                            BufferedImage plateImage = ImageIO.read(getClass().getResourceAsStream("/items/kitchenUtensils/plate.png"));
-                            int itemSize = 48; // 48x48 pixels for plate
-                            int screenX = x * gp.tileSize + (gp.tileSize - itemSize) / 2;
-                            int screenY = y * gp.tileSize + (gp.tileSize - itemSize) / 2;
-                            g2.drawImage(plateImage, screenX, screenY, itemSize, itemSize, null);
-                        } catch (Exception e) {
-                            System.err.println("Failed to load plate image for PlateStorage rendering");
+                        // Ambil semua piring untuk digambar menumpuk
+                        java.util.Stack<items.equipment.Plate> plates = plateStorage.getPlates();
+                        
+                        // Loop dari piring paling bawah (index 0) ke paling atas
+                        for (int i = 0; i < plates.size(); i++) {
+                            items.equipment.Plate plate = plates.get(i);
+                            
+                            if (plate.getImage() != null) {
+                                int itemSize = 48; // Ukuran piring
+                                int screenX = x * gp.tileSize + (gp.tileSize - itemSize) / 2;
+                                
+                                // LOGIKA TUMPUKAN:
+                                // Geser setiap piring ke atas sedikit (misal 3-4 pixel) berdasarkan index-nya
+                                int stackOffset = i * 4; 
+                                int screenY = y * gp.tileSize + (gp.tileSize - itemSize) / 2 - stackOffset;
+                                
+                                g2.drawImage(plate.getImage(), screenX, screenY, itemSize, itemSize, null);
+                            }
                         }
                     }
-                    // Don't render normal item if this is PlateStorage (item should be null anyway)
+                    // Continue agar tidak merender item default (karena sudah digambar custom di atas)
                     continue;
                 }
 

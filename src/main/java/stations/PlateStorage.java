@@ -22,6 +22,9 @@ public class PlateStorage extends Station {
         return !plates.isEmpty();
     }
 
+    public Stack<Plate> getPlates() {
+        return plates;
+    }
     /**
      * Gets the number of plates currently in storage
      */
