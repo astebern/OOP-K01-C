@@ -82,6 +82,7 @@ src/main/java
 ├── map/            # Tile-based map rendering and collision
 ├── stations/       # Logic for specific stations (Cutting, Cooking, Washing)
 └── utils/          # Helper classes (Enums, Position)
+``` 
 
 ## 👥 Authors
 
