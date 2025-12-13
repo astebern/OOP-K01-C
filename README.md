@@ -36,7 +36,7 @@ You control **two chefs** (Minions) in a kitchen. Since it's a single-player gam
 * Maven (Optional, but recommended)
 * **Clone the repository**
     ```bash
-    git clone [https://github.com/username/nimonscooked.git](https://github.com/username/nimonscooked.git)
+    git clone [https://github.com/astebern/OOP-K01-C.git](https://github.com/astebern/OOP-K01-C)
     cd nimonscooked
     ```
 
@@ -46,11 +46,11 @@ You control **two chefs** (Minions) in a kitchen. Since it's a single-player gam
     ```bash
     mvn clean compile
     ```
-3. **Run teh  Game:**
+3. **Run the Game:**
     ```bash
     mvn exec:java
     ```
-
+  
 ### Method 2: Manual Compilation
  **If you don't have Maven, you can compile it manually:**
     ```bash
