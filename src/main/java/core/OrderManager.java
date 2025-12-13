@@ -288,5 +288,11 @@ public class OrderManager {
         this.targetScore = target;
         System.out.println("OrderManager: Target score set to " + target);
     }
+
+    @BetterComments(description="Sets custom time limit for stage", type="method")
+    public void setStageTimeLimit(long timeLimitMillis) {
+        this.stageTimeLimit = timeLimitMillis;
+        System.out.println("OrderManager: Stage time limit set to " + (timeLimitMillis/1000) + " seconds");
+    }
 }
 

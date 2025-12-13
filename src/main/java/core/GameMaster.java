@@ -112,7 +112,12 @@ public class GameMaster {
         // Set target score based on stage number
         int targetScore = getTargetScoreForStage(stageNumber);
         orderManager.setTargetScore(targetScore);
-        System.out.println("GameMaster: Stage " + stageNumber + " - Target Score: " + targetScore);
+
+        // Set stage time limit based on stage number
+        long timeLimit = getTimeLimitForStage(stageNumber);
+        orderManager.setStageTimeLimit(timeLimit);
+
+        System.out.println("GameMaster: Stage " + stageNumber + " - Target Score: " + targetScore + ", Time: " + (timeLimit/1000) + "s");
 
         gamePanel = new GamePanel(this);
         frame.add(gamePanel);
@@ -139,6 +144,22 @@ public class GameMaster {
                 return 500;  // Stage 4: Hard - 500 points (~10 orders)
             default:
                 return 200;  // Default - 200 points
+        }
+    }
+
+    @BetterComments(description="Returns the time limit in milliseconds for a specific stage",type="method")
+    private long getTimeLimitForStage(int stageNumber) {
+        switch (stageNumber) {
+            case 1:
+                return 2 * 60 * 1000;  // Stage 1: 2 minutes (120 seconds)
+            case 2:
+                return 3 * 60 * 1000;  // Stage 2: 3 minutes (180 seconds)
+            case 3:
+                return 4 * 60 * 1000;  // Stage 3: 4 minutes (240 seconds)
+            case 4:
+                return 5 * 60 * 1000;  // Stage 4: 5 minutes (300 seconds)
+            default:
+                return 3 * 60 * 1000;  // Default: 3 minutes
         }
     }
 
