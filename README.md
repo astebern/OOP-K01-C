@@ -1,6 +1,6 @@
 # 🍳 NimonsCooked
 
-**NimonsCooked** is a 2D co-op cooking simulation game built from scratch using **Java** and **Swing**. Inspired by *Overcooked!*, this project was developed as a *tugas besar* for the Object-Oriented Programming (OOP) course.
+**NimonsCooked** is a 2D co-op cooking simulation game built from scratch using **Java**. Inspired by *Overcooked!*, this project was developed as a *tugas besar* for the IF2010: Object-Oriented Programming (OOP) course.
 
 The goal is simple: manage two chefs in a chaotic kitchen, prepare ingredients, cook recipes, and serve customers before time runs out.
 
@@ -52,12 +52,15 @@ You control **two chefs** (Minions) in a kitchen. Since it's a single-player gam
     ```
   
 ### Method 2: Manual Compilation
- **If you don't have Maven, you can compile it manually:**
+1. **If you don't have Maven, you can compile it manually: **
     ```bash
     javac -d bin -sourcepath src/main/java src/main/java/core/Main.java
+    ```
+2. **Run**
+    ```bash
     java -cp bin core.Main
     ```
-
+    
 ## 🛠️ Technical Overview
 
 This project implements key OOP concepts and Java features required for the course:
