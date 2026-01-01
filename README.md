@@ -52,7 +52,7 @@ You control **two chefs** (Minions) in a kitchen. Since it's a single-player gam
     ```
   
 ### Method 2: Manual Compilation
-1. **If you don't have Maven, you can compile it manually: **
+1. **If you don't have Maven, you can compile it manually:**
     ```bash
     javac -d bin -sourcepath src/main/java src/main/java/core/Main.java
     ```
