@@ -24,7 +24,7 @@ public class OrderManager {
     private boolean stageSuccess; // NEW: Track if stage was completed successfully
 
     private long lastSpawnTime;
-    private static final long SPAWN_INTERVAL = 15000; 
+    private static final long SPAWN_INTERVAL = 15000;
 
     // Stage timer fields
     private long stageStartTime;
@@ -35,7 +35,7 @@ public class OrderManager {
     private int targetScore;
     private static final int DEFAULT_TARGET_SCORE = 200; // Default target for stage (lowered from 500)
 
-    @BetterComments(description="Initializes the order manager with random orders", type="constructor")
+    @BetterComments(description = "Initializes the order manager with random orders", type = "constructor")
     public OrderManager() {
         this.activeOrders = new ArrayList<>();
         this.random = new Random();
@@ -57,12 +57,12 @@ public class OrderManager {
         this.targetScore = DEFAULT_TARGET_SCORE;
 
         // Generate initial orders
-        generateNewOrder(0); 
+        generateNewOrder(0);
         System.out.println("OrderManager: Initial order generated.");
         System.out.println("OrderManager: Target Score = " + targetScore);
     }
 
-    @BetterComments(description="Generates a new random order from available recipes", type="method")
+    @BetterComments(description = "Generates a new random order from available recipes", type = "method")
     private void generateNewOrder(int position) {
         List<Recipe> allRecipes = AssemblyStation.getRecipes();
         if (allRecipes.isEmpty()) {
@@ -85,27 +85,28 @@ public class OrderManager {
         activeOrders.add(newOrder);
 
         System.out.println("OrderManager: Generated new order - " + randomRecipe.getName() +
-                         " (Time: " + timeLimit + "s, Reward: $" + reward + ")");
+                " (Time: " + timeLimit + "s, Reward: $" + reward + ")");
     }
 
-    @BetterComments(description="Updates order timers and handles expired orders", type="method")
+    @BetterComments(description = "Updates order timers and handles expired orders", type = "method")
     public void update() {
-        if (gameOver) return; // jgn update if game over
+        if (gameOver)
+            return; // jgn update if game over
 
         long currentTime = System.currentTimeMillis();
         long deltaTime = currentTime - lastUpdateTime;
 
         lastUpdateTime = currentTime;
-        if (activeOrders.size() < maxConcurrentOrders && 
-            currentTime - lastSpawnTime > SPAWN_INTERVAL) {
-            
+        if (activeOrders.size() < maxConcurrentOrders &&
+                currentTime - lastSpawnTime > SPAWN_INTERVAL) {
+
             boolean[] slotOccupied = new boolean[maxConcurrentOrders];
             for (Order order : activeOrders) {
                 if (order.getPosisiOrder() >= 0 && order.getPosisiOrder() < maxConcurrentOrders) {
                     slotOccupied[order.getPosisiOrder()] = true;
                 }
             }
-            
+
             int freeSlot = -1;
             for (int i = 0; i < maxConcurrentOrders; i++) {
                 if (!slotOccupied[i]) {
@@ -161,7 +162,8 @@ public class OrderManager {
         for (Order expiredOrder : expiredOrders) {
             System.out.println("OrderManager: Order expired - " + expiredOrder.getRecipe().getName());
             money -= expiredOrder.getPenalty(); // Apply penalty
-            if (money < 0) money = 0;
+            if (money < 0)
+                money = 0;
 
             ordersFailed++; // Increment failed orders
             System.out.println("OrderManager: Failed orders: " + ordersFailed + "/" + MAX_FAILED_ORDERS);
@@ -182,14 +184,15 @@ public class OrderManager {
         }
     }
 
-    @BetterComments(description="Checks if a dish matches any active order and completes it", type="method")
+    @BetterComments(description = "Checks if a dish matches any active order and completes it", type = "method")
     public boolean checkAndCompleteOrder(Dish dish) {
-        if (gameOver) return false; // Don't accept orders if game is over
+        if (gameOver)
+            return false; // Don't accept orders if game is over
 
         for (Order order : activeOrders) {
             if (order.compareDishAndRecipe(dish, order.getRecipe())) {
                 System.out.println("OrderManager: Order completed - " + order.getRecipe().getName() +
-                                 " (Reward: $" + order.getReward() + ")");
+                        " (Reward: $" + order.getReward() + ")");
 
                 // Award points and money
                 money += order.getReward();
@@ -197,7 +200,8 @@ public class OrderManager {
                 ordersCompleted++;
 
                 // Debug: Show score progress
-                System.out.println(">>> SCORE UPDATE: " + (score - order.getReward()) + " -> " + score + " (Target: " + targetScore + ")");
+                System.out.println(">>> SCORE UPDATE: " + (score - order.getReward()) + " -> " + score + " (Target: "
+                        + targetScore + ")");
                 if (score >= targetScore) {
                     System.out.println(">>> TARGET REACHED! Stage can be completed when timer runs out.");
                 }
@@ -254,45 +258,64 @@ public class OrderManager {
         return MAX_FAILED_ORDERS;
     }
 
-    @BetterComments(description="Gets remaining stage time in seconds", type="method")
+    @BetterComments(description = "Gets remaining stage time in seconds", type = "method")
     public int getStageRemainingTime() {
-        if (gameOver) return 0;
+        if (gameOver)
+            return 0;
         long elapsed = System.currentTimeMillis() - stageStartTime;
         long remaining = stageTimeLimit - elapsed;
-        return Math.max(0, (int)(remaining / 1000));
+        return Math.max(0, (int) (remaining / 1000));
     }
 
-    @BetterComments(description="Gets stage time progress as percentage", type="method")
+    @BetterComments(description = "Gets stage time progress as percentage", type = "method")
     public float getStageProgressPercent() {
         long elapsed = System.currentTimeMillis() - stageStartTime;
         return Math.min(100f, (elapsed * 100f / stageTimeLimit));
     }
 
-    @BetterComments(description="Gets total stage time limit in seconds", type="method")
+    @BetterComments(description = "Gets total stage time limit in seconds", type = "method")
     public int getStageTimeLimit() {
-        return (int)(stageTimeLimit / 1000);
+        return (int) (stageTimeLimit / 1000);
     }
 
-    @BetterComments(description="Gets the target score for this stage", type="method")
+    @BetterComments(description = "Gets the target score for this stage", type = "method")
     public int getTargetScore() {
         return targetScore;
     }
 
-    @BetterComments(description="Checks if stage was completed successfully", type="method")
+    @BetterComments(description = "Checks if stage was completed successfully", type = "method")
     public boolean isStageSuccess() {
         return stageSuccess;
     }
 
-    @BetterComments(description="Sets custom target score for stage", type="method")
+    @BetterComments(description = "Sets custom target score for stage", type = "method")
     public void setTargetScore(int target) {
         this.targetScore = target;
         System.out.println("OrderManager: Target score set to " + target);
     }
 
-    @BetterComments(description="Sets custom time limit for stage", type="method")
+    @BetterComments(description = "Sets custom time limit for stage", type = "method")
     public void setStageTimeLimit(long timeLimitMillis) {
         this.stageTimeLimit = timeLimitMillis;
-        System.out.println("OrderManager: Stage time limit set to " + (timeLimitMillis/1000) + " seconds");
+        System.out.println("OrderManager: Stage time limit set to " + (timeLimitMillis / 1000) + " seconds");
+    }
+
+    @BetterComments(description = "Forces the game to end immediately with current stats", type = "method")
+    public void forceEndGame() {
+        if (gameOver)
+            return; // Already game over
+
+        gameOver = true;
+
+        // Check if target score was reached
+        if (score >= targetScore) {
+            stageSuccess = true;
+            gameOverReason = "Stage Complete! You reached the target score of " + targetScore + "!";
+            System.out.println("OrderManager: STAGE SUCCESS (Manual Exit) - " + gameOverReason);
+        } else {
+            stageSuccess = false;
+            gameOverReason = "Stage ended early. You scored " + score + "/" + targetScore;
+            System.out.println("OrderManager: STAGE ENDED (Manual Exit) - " + gameOverReason);
+        }
     }
 }
-

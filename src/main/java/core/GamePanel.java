@@ -8,7 +8,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.List;
 
-public class GamePanel extends JPanel implements Runnable{
+public class GamePanel extends JPanel implements Runnable {
     final int originalTilSize = 16;
     final int scale = 6;
     public final int tileSize = originalTilSize * scale;
@@ -24,9 +24,8 @@ public class GamePanel extends JPanel implements Runnable{
     Thread gameThread;
     GameMaster gameMaster;
 
-
-@BetterComments(description = "Sets up rendering and input and spawn chefs",type="constructor")
-    public GamePanel(GameMaster gameMaster){
+    @BetterComments(description = "Sets up rendering and input and spawn chefs", type = "constructor")
+    public GamePanel(GameMaster gameMaster) {
         this.gameMaster = gameMaster;
         this.setPreferredSize(new Dimension(screenWidth, screenHeight));
         this.setBackground(Color.black);
@@ -48,47 +47,54 @@ public class GamePanel extends JPanel implements Runnable{
         gameMaster.addChef(chef2);
     }
 
-    @BetterComments(description = "Creates game loop on seperate thread",type="method")
-    public void startGameThread(){
+    @BetterComments(description = "Creates game loop on seperate thread", type = "method")
+    public void startGameThread() {
         gameThread = new Thread(this);
         gameThread.start();
     }
 
-    @BetterComments(description = "Stops the game loop", type="method")
+    @BetterComments(description = "Stops the game loop", type = "method")
     public void stopGameThread() {
         gameThread = null; // Ini akan membuat kondisi while(gameThread != null) menjadi false
     }
 
-@Override
-public void run() {
-    double drawInterval = 1000000000 / fps;
-    double nextDrawTime = System.nanoTime() + drawInterval;
+    @Override
+    public void run() {
+        double drawInterval = 1000000000 / fps;
+        double nextDrawTime = System.nanoTime() + drawInterval;
 
-    while (gameThread != null) { 
-        update();
-        repaint();
-        try {
-            double remainingTime = (nextDrawTime - System.nanoTime()) / 1_000_000;
-            if (remainingTime < 0) {
-                remainingTime = 0;
+        while (gameThread != null) {
+            update();
+            repaint();
+            try {
+                double remainingTime = (nextDrawTime - System.nanoTime()) / 1_000_000;
+                if (remainingTime < 0) {
+                    remainingTime = 0;
+                }
+
+                Thread.sleep((long) remainingTime);
+                nextDrawTime += drawInterval;
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
-
-            Thread.sleep((long)remainingTime);
-            nextDrawTime += drawInterval;
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
         }
     }
-}
 
-    @BetterComments(description = "Updates Active Chef",type="method")
-    public void update(){
-        // Check if ESC pressed during game over
+    @BetterComments(description = "Updates Active Chef", type = "method")
+    public void update() {
+        // Check if ESC pressed
         OrderManager orderManager = gameMaster.getOrderManager();
-        if (orderManager != null && orderManager.isGameOver() && keyH.escPressed) {
+        if (orderManager != null && keyH.escPressed) {
             keyH.escPressed = false;
-            gameMaster.showStartMenu();
-            return;
+            if (orderManager.isGameOver()) {
+                // During game over screen - return to menu
+                gameMaster.showStartMenu();
+                return;
+            } else {
+                // During gameplay - force end the game with current stats
+                orderManager.forceEndGame();
+                return;
+            }
         }
 
         if (keyH.switchChef) {
@@ -109,10 +115,10 @@ public void run() {
         }
     }
 
-    @BetterComments(description = "Renders the game map, all chefs, and a visual indicator around the currently active chef.",type="method")
-    public void paintComponent(Graphics g){
+    @BetterComments(description = "Renders the game map, all chefs, and a visual indicator around the currently active chef.", type = "method")
+    public void paintComponent(Graphics g) {
         super.paintComponent(g);
-        Graphics2D g2 = (Graphics2D)g;
+        Graphics2D g2 = (Graphics2D) g;
         tileM.draw(g2);
 
         // Draw all chefs
@@ -120,25 +126,42 @@ public void run() {
             chef.draw(g2);
         }
 
-        // Draw indicator for active chef
+        // Draw indicator for active chef (small arrow above player)
         Chef activeChef = gameMaster.getActiveChef();
         if (activeChef != null) {
-            g2.setColor(Color.YELLOW);
-            g2.setStroke(new BasicStroke(3));
             int x = activeChef.getPosition().getX();
             int y = activeChef.getPosition().getY();
-            g2.drawRect(x - 2, y - 2, tileSize + 4, tileSize + 4);
 
-            // Draw indicator for target tile (tile in front of chef)
+            // Draw small arrow pointing down above the player
+            int arrowWidth = 20;
+            int arrowHeight = 15;
+            int arrowX = x + (tileSize / 2); // Center of the player
+            int arrowY = y - 5; // Above the player
+
+            // Create arrow polygon (pointing downward)
+            int[] xPoints = { arrowX - arrowWidth / 2, arrowX + arrowWidth / 2, arrowX };
+            int[] yPoints = { arrowY - arrowHeight, arrowY - arrowHeight, arrowY };
+
+            g2.setColor(Color.YELLOW);
+            g2.fillPolygon(xPoints, yPoints, 3);
+
+            // Add a black outline for better visibility
+            g2.setColor(Color.BLACK);
+            g2.setStroke(new BasicStroke(2));
+            g2.drawPolygon(xPoints, yPoints, 3);
+
+            // Draw highlight for target tile (tile in front of chef) using brightness
+            // overlay
             int targetTileX = activeChef.getTargetTileX();
             int targetTileY = activeChef.getTargetTileY();
             if (targetTileX >= 0 && targetTileX < tileM.getMapWidth() &&
-                targetTileY >= 0 && targetTileY < tileM.getMapHeight()) {
-                g2.setColor(Color.GREEN);
-                g2.setStroke(new BasicStroke(2));
+                    targetTileY >= 0 && targetTileY < tileM.getMapHeight()) {
                 int targetX = targetTileX * tileSize;
                 int targetY = targetTileY * tileSize;
-                g2.drawRect(targetX + 2, targetY + 2, tileSize - 4, tileSize - 4);
+
+                // Draw semi-transparent white overlay to create brightness/highlight effect
+                g2.setColor(new Color(255, 255, 255, 80)); // White with ~30% opacity
+                g2.fillRect(targetX, targetY, tileSize, tileSize);
             }
         }
 
@@ -154,9 +177,9 @@ public void run() {
         g2.dispose();
     }
 
-    @BetterComments(description = "Draws stage timer at the top of order area", type="method")
+    @BetterComments(description = "Draws stage timer at the top of order area", type = "method")
     private void drawStageTimer(Graphics2D g2, OrderManager orderManager, int x, int width) {
-        int timerHeight = (int)(tileSize * 0.7);
+        int timerHeight = (int) (tileSize * 0.7);
         int timerY = 10;
 
         // Draw timer panel
@@ -194,7 +217,7 @@ public void run() {
         g2.drawString(timeText, x + (width - timeWidth) / 2, timerY + 55);
     }
 
-    @BetterComments(description = "Draws game over screen with final stats", type="method")
+    @BetterComments(description = "Draws game over screen with final stats", type = "method")
     private void drawGameOver(Graphics2D g2, OrderManager orderManager) {
         // Semi-transparent overlay
         g2.setColor(new Color(0, 0, 0, 180));
@@ -275,10 +298,11 @@ public void run() {
         g2.drawString(instruction, (screenWidth - instWidth) / 2, screenHeight - 50);
     }
 
-    @BetterComments(description = "Draws active orders on the right side of the screen (x > 14)", type="method")
+    @BetterComments(description = "Draws active orders on the right side of the screen (x > 14)", type = "method")
     private void drawOrders(Graphics2D g2) {
         OrderManager orderManager = gameMaster.getOrderManager();
-        if (orderManager == null) return;
+        if (orderManager == null)
+            return;
 
         // Draw white background for all tiles where x > 14
         g2.setColor(Color.WHITE);
@@ -295,16 +319,16 @@ public void run() {
         // Draw each order vertically (stacked on top of each other)
         // Total space: 10 tiles tall, 4 tiles wide
         // 0.8 tiles for stage timer, then 3 orders + 1 stats
-        int orderStartY = (int)(tileSize * 0.8) + 10; // Start after stage timer
+        int orderStartY = (int) (tileSize * 0.8) + 10; // Start after stage timer
         for (int i = 0; i < activeOrders.size(); i++) {
             Order order = activeOrders.get(i);
 
             // Each order gets 2.3 tiles of space
             int orderX = 15 * tileSize + 10; // Start at x=15 tiles + 10px margin
-            int orderY = orderStartY + (i * (int)(tileSize * 2.3)); // 2.3 tiles per order
+            int orderY = orderStartY + (i * (int) (tileSize * 2.3)); // 2.3 tiles per order
 
             int panelWidth = tileSize * 4 - 20; // 4 tiles wide minus margins
-            int panelHeight = (int)(tileSize * 2.1); // 2.1 tiles tall
+            int panelHeight = (int) (tileSize * 2.1); // 2.1 tiles tall
 
             // Draw background panel for order
             g2.setColor(new Color(50, 50, 50, 220)); // Semi-transparent dark background
@@ -367,7 +391,7 @@ public void run() {
             g2.fillRoundRect(barX, barY, barWidth, barHeight, 8, 8);
 
             // Progress bar (color changes based on time remaining)
-            int filledWidth = (int)(barWidth * (1 - progress / 100f));
+            int filledWidth = (int) (barWidth * (1 - progress / 100f));
             if (remainingTime > 30) {
                 g2.setColor(new Color(50, 220, 50)); // Green
             } else if (remainingTime > 10) {
@@ -394,9 +418,9 @@ public void run() {
         // Draw score and money - positioned after stage timer and 3 orders
         // 0.8 tiles (timer) + 3 orders × 2.3 tiles = 7.7 tiles used
         int statsX = 15 * tileSize + 10;
-        int statsY = orderStartY + (int)(3 * tileSize * 2.3) + 10; // After 3 orders
+        int statsY = orderStartY + (int) (3 * tileSize * 2.3) + 10; // After 3 orders
         int statsWidth = tileSize * 4 - 20;
-        int statsHeight = (int)(tileSize * 2.0); // Fit in remaining space
+        int statsHeight = (int) (tileSize * 2.0); // Fit in remaining space
 
         g2.setColor(new Color(40, 40, 40, 220));
         g2.fillRoundRect(statsX, statsY, statsWidth, statsHeight, 10, 10);
@@ -435,6 +459,11 @@ public void run() {
             g2.setColor(Color.WHITE); // All good
         }
         g2.drawString("Failed: " + failedCount + "/" + maxFailed, statsX + 15, statsY + 125);
+
+        // Draw exit instruction
+        g2.setColor(Color.LIGHT_GRAY);
+        g2.setFont(new Font("Arial", Font.ITALIC, 11));
+        g2.drawString("Press ESC to exit", statsX + 15, statsY + 150);
     }
 
     public GameMaster getGameMaster() {
